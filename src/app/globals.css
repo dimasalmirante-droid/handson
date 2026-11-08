@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+/*
+ * Handson design system v1 — tokens.
+ * Source of truth: the "Handson" design system artifact. Keep in sync with
+ * the public WordPress site (handson.cloud), which uses the same values.
+ */
+@theme {
+  /* Colour */
+  --color-surface: #f7f5f0;
+  --color-surface-raised: #ffffff;
+  --color-line: #e4e0d6;
+  --color-line-strong: #8e8899;
+  --color-ink: #16131f;
+  --color-ink-muted: #5b5766;
+  --color-indigo: #3a2bd6;
+  --color-indigo-dark: #2a1db0;
+  --color-indigo-soft: #eceafd;
+  --color-on-indigo: #ffffff;
+  --color-lime: #d4f25a;
+  --color-coral: #ff6a4d;
+
+  /* Status (added for the app; each meets 4.5:1 as text on its soft tint and on white) */
+  --color-success: #1d6b45;
+  --color-success-soft: #e3f4ea;
+  --color-warning: #8a5300;
+  --color-warning-soft: #fdf1dc;
+  --color-danger: #b42318;
+  --color-danger-soft: #fdeceb;
+
+  /* Type */
+  --font-display: "Bricolage Grotesque Variable", system-ui, sans-serif;
+  --font-sans: "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+  body {
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.12;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-indigo);
+    outline-offset: 2px;
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "common": {
+    "brand": "handson",
+    "backToSite": "Back to handson.cloud",
+    "privacy": "Privacy Policy",
+    "terms": "Terms and Conditions",
+    "contact": "Contact",
+    "required": "Required"
+  },
+  "home": {
+    "title": "Your early-career profile, in one place",
+    "lead": "Create your Handson account to build your professional profile, upload your documents and control who can see them.",
+    "createProfile": "Create your profile",
+    "logIn": "Log in"
+  },
+  "auth": {
+    "comingSoon": "Account sign-up and sign-in are being set up and will open shortly.",
+    "continueWithGoogle": "Continue with Google",
+    "or": "or",
+    "email": "Email address",
+    "password": "Password",
+    "passwordHint": "At least 8 characters.",
+    "firstName": "First name",
+    "surname": "Surname",
+    "login": {
+      "title": "Welcome back",
+      "lead": "Log in to continue building your profile.",
+      "submit": "Log in",
+      "forgot": "Forgot your password?",
+      "noAccount": "New to Handson?",
+      "createAccount": "Create an account"
+    },
+    "register": {
+      "title": "Create your account",
+      "lead": "Build one professional profile for internships, traineeships and first jobs. Your profile is private by default.",
+      "submit": "Create account",
+      "hasAccount": "Already have an account?",
+      "logIn": "Log in",
+      "consent": "By creating an account you agree to the Terms and Conditions and acknowledge the Privacy Policy."
+    }
+  },
+  "notFound": {
+    "title": "Page not found",
+    "lead": "The page you are looking for does not exist or has moved.",
+    "home": "Go to the start page"
+  }
+}
