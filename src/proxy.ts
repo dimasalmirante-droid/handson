@@ -13,6 +13,14 @@ import { isGuestOnlyPath, isProtectedPath } from "@/lib/auth/redirects";
  * enforces Row Level Security.
  */
 export async function proxy(request: NextRequest) {
+  // If Supabase falls back to the Site URL after OAuth, the one-time code
+  // lands on "/". Hand it to the callback route so the sign-in completes.
+  if (request.nextUrl.pathname === "/" && request.nextUrl.searchParams.has("code")) {
+    const callback = request.nextUrl.clone();
+    callback.pathname = "/auth/callback";
+    return NextResponse.redirect(callback);
+  }
+
   let response = NextResponse.next({ request });
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
