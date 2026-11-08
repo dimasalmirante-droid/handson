@@ -8,31 +8,48 @@ const ALLOWED_TYPES: EmailOtpType[] = ["signup", "email", "recovery", "email_cha
 
 /**
  * Target of the links in verification and password-reset emails.
- * Uses `token_hash`, so the link works even when opened on a different
- * device or browser from the one used to sign up.
+ *
+ * Preferred: `token_hash` links (custom email templates), which work even
+ * when opened on a different device or browser from the one used to sign up.
+ * Fallback: `code` links (Supabase default templates), which work only in the
+ * browser that requested the email.
  */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
-
-  if (!tokenHash || !type || !ALLOWED_TYPES.includes(type)) {
-    return NextResponse.redirect(new URL("/login?error=link", origin));
-  }
+  const code = searchParams.get("code");
+  const next = searchParams.get("next");
 
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
+  let userId: string | null = null;
+  let isRecovery = false;
 
-  if (error || !data.user) {
+  if (tokenHash && type && ALLOWED_TYPES.includes(type)) {
+    const { data, error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
+    if (error || !data.user) {
+      console.error("verifyOtp failed", error?.code, error?.message);
+      return NextResponse.redirect(new URL("/login?error=link", origin));
+    }
+    userId = data.user.id;
+    isRecovery = type === "recovery";
+  } else if (code) {
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error || !data.user) {
+      console.error("exchangeCodeForSession (email link) failed", error?.code, error?.message);
+      return NextResponse.redirect(new URL("/login?error=link", origin));
+    }
+    userId = data.user.id;
+    isRecovery = next === "/reset-password";
+  } else {
     return NextResponse.redirect(new URL("/login?error=link", origin));
   }
 
-  if (type === "recovery") {
+  if (isRecovery) {
     return NextResponse.redirect(new URL("/reset-password", origin));
   }
 
-  const home = await postAuthPath(data.user.id);
-  const next = searchParams.get("next");
+  const home = await postAuthPath(userId);
   const target = new URL(next ? safeNextPath(next, home) : home, origin);
   target.searchParams.set("notice", "verified");
   return NextResponse.redirect(target);
