@@ -12,7 +12,7 @@ Student-first early-career talent platform for Mozambique. This repository conta
 | 4 | Six-step student onboarding | Done |
 | 5 | Student dashboard | Done |
 | 6 | Document management | Done |
-| 7 | Admin portal | Not started |
+| 7 | Admin portal | Done |
 | 8 | Testing and deployment | Not started |
 
 
@@ -105,6 +105,7 @@ SQL migrations live in `supabase/migrations/`. Apply each new file in order, eit
 | `20261109000200_core_schema.sql` | Student records, catalogues, consent, admin roles, audit log, RLS, completion function |
 | `20261109000300_reference_data.sql` | Mozambique reference data (EN + PT) |
 | `20261109000400_storage.sql` | Private `documents` and `avatars` buckets with own-folder access policies |
+| `20261109000500_admin.sql` | Admin search, statistics, verification, account and role functions; suspended accounts cannot write |
 
 ## Database schema
 
@@ -143,6 +144,20 @@ Every table has Row Level Security:
 | Professional interests | 15% | Proportional: industries, job functions, work arrangements, availability, preferred locations |
 | Experience | 15% | At least one record (internship, volunteering, project, activity, job) |
 | Documents and portfolio | 20% | CV 10%, academic transcript 10% |
+
+## Admin portal
+
+`/admin` (non-administrators receive a 404). Every role check happens on the server and again inside the database function; sensitive actions are written to `audit_logs`.
+
+| Capability | Reviewer | Admin | Super admin |
+|---|---|---|---|
+| Overview, search and filter students, review profiles, open documents | ✓ | ✓ | ✓ |
+| Verify or reject profiles, qualifications and documents (student notified) | ✓ | ✓ | ✓ |
+| Suspend or reactivate accounts (reason required) | | ✓ | ✓ |
+| CSV export of filtered students (max 5,000 rows) | | ✓ | ✓ |
+| Manage administrators, read the audit log | | | ✓ |
+
+Audited actions include profile views, document opens, verification changes, suspensions, exports and role changes. Suspended students are signed out and RLS blocks their writes. CSV cells are protected against formula injection.
 
 ### First administrator
 

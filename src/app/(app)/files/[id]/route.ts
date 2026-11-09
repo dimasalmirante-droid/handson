@@ -19,8 +19,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   if (!/^[0-9a-f-]{36}$/.test(id)) return new NextResponse("Not found", { status: 404 });
 
   const supabase = await createClient();
-  const { data: doc } = await supabase.from("documents").select("storage_path, original_filename").eq("id", id).maybeSingle();
+  const { data: doc } = await supabase.from("documents").select("profile_id, storage_path, original_filename").eq("id", id).maybeSingle();
   if (!doc) return new NextResponse("Not found", { status: 404 });
+
+  // Administrators opening a student's document leave an audit record.
+  if (doc.profile_id !== user.id) {
+    await supabase.rpc("log_admin_action", { p_action: "document.viewed", p_target_table: "documents", p_target_id: id, p_metadata: { profile_id: doc.profile_id } });
+  }
 
   const download = request.nextUrl.searchParams.get("download") === "1";
   const { data, error } = await supabase.storage

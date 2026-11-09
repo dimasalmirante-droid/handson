@@ -14,6 +14,7 @@ export type Profile = {
   first_name: string | null;
   surname: string | null;
   onboarding_completed_at: string | null;
+  account_status: "active" | "suspended";
 };
 
 /**
@@ -38,12 +39,14 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   };
 });
 
-/** Use at the top of every protected page, layout and Server Action. */
+/** Use at the top of every protected page, layout and Server Action. Suspended accounts are signed out. */
 export async function requireUser(nextPath?: string): Promise<CurrentUser> {
   const user = await getCurrentUser();
   if (!user) {
     redirect(nextPath ? `/login?next=${encodeURIComponent(nextPath)}` : "/login");
   }
+  const profile = await getOwnProfile(user.id);
+  if (profile?.account_status === "suspended") redirect("/auth/signout?reason=suspended");
   return user;
 }
 
@@ -52,14 +55,22 @@ export const getOwnProfile = cache(async (userId: string): Promise<Profile | nul
   const supabase = await createClient();
   const { data } = await supabase
     .from("profiles")
-    .select("id, first_name, surname, onboarding_completed_at")
+    .select("id, first_name, surname, onboarding_completed_at, account_status")
     .eq("id", userId)
     .maybeSingle();
   return data;
 });
 
-/** First-time users go to onboarding; returning users to their dashboard. */
-export async function postAuthPath(userId: string): Promise<"/onboarding" | "/dashboard"> {
+/** Administrators go to the admin portal; first-time students to onboarding; returning students to their dashboard. */
+export async function postAuthPath(userId: string): Promise<"/onboarding" | "/dashboard" | "/admin"> {
+  const supabase = await createClient();
+  const { data: role } = await supabase
+    .from("administrator_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .is("revoked_at", null)
+    .maybeSingle();
+  if (role) return "/admin";
   const profile = await getOwnProfile(userId);
   return profile?.onboarding_completed_at ? "/dashboard" : "/onboarding";
 }

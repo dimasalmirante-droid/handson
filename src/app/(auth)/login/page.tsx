@@ -9,6 +9,7 @@ export const metadata: Metadata = { title: "Log in" };
 const errors: Record<string, string> = {
   google: "Google sign-in could not be completed. Please try again or use your email and password.",
   link: "That link is invalid or has expired. Log in, or request a new link.",
+  suspended: "Your account has been suspended. If you think this is a mistake, contact hello@handson.cloud.",
 };
 
 const notices: Record<string, string> = {

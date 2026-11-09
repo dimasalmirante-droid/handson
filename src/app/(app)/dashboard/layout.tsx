@@ -3,13 +3,16 @@ import type { ReactNode } from "react";
 import { DashboardNav } from "@/components/dashboard/nav";
 import { AppShell } from "@/components/layout/app-shell";
 import { requireUser } from "@/lib/auth/session";
+import { getAdminRole } from "@/lib/auth/admin";
 import { getProfile } from "@/lib/data/student";
 
 /** Signed-in students who have finished onboarding. Others continue onboarding first. */
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const user = await requireUser("/dashboard");
   const profile = await getProfile(user.id);
-  if (!profile?.onboarding_completed_at) redirect("/onboarding");
+  if (!profile?.onboarding_completed_at) {
+    redirect((await getAdminRole(user.id)) ? "/admin" : "/onboarding");
+  }
 
   return (
     <AppShell email={user.email}>

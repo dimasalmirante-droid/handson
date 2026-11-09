@@ -366,3 +366,99 @@ describe("file storage", () => {
     expect(ok.rows).toHaveLength(1);
   });
 });
+
+describe("administration", () => {
+  const SUPER = "00000000-0000-4000-8000-0000000000ff";
+  const REVIEWER = "00000000-0000-4000-8000-0000000000ee";
+
+  beforeAll(async () => {
+    await db.exec(`
+      insert into auth.users (id, email, email_confirmed_at) values
+        ('${SUPER}', 'super@handson.cloud', now()),
+        ('${REVIEWER}', 'reviewer@handson.cloud', now());
+      insert into public.administrator_roles (user_id, role) values ('${SUPER}', 'super_admin'), ('${REVIEWER}', 'reviewer');
+    `);
+  });
+
+  it("search returns students only, with filters and a total count", async () => {
+    const all = await as<{ id: string; total_count: number; completion: number }>(REVIEWER, "select * from public.admin_search_students()");
+    const ids = all.rows.map((r) => r.id);
+    expect(ids).toEqual(expect.arrayContaining([A, B]));
+    expect(ids).not.toContain(ADMIN);
+    expect(Number(all.rows[0].total_count)).toBe(all.rows.length);
+
+    const byName = await as<{ id: string }>(REVIEWER, "select id from public.admin_search_students(p_query => 'amina')");
+    expect(byName.rows.map((r) => r.id)).toEqual([A]);
+
+    const uem = (await db.query<{ id: string }>("select id from public.institutions where short_name = 'UEM'")).rows[0].id;
+    const byInstitution = await as<{ id: string }>(REVIEWER, "select id from public.admin_search_students(p_institution => $1)", [uem]);
+    expect(byInstitution.rows.map((r) => r.id)).toEqual([A]);
+
+    const highCompletion = await as<{ id: string }>(REVIEWER, "select id from public.admin_search_students(p_min_completion => 40)");
+    expect(highCompletion.rows.map((r) => r.id)).toEqual([A]);
+  });
+
+  it("students cannot search or read statistics", async () => {
+    await expectDenied(A, "select * from public.admin_search_students()");
+    await expectDenied(A, "select public.admin_stats()");
+  });
+
+  it("statistics count students", async () => {
+    const { rows } = await as<{ s: { total: number } }>(REVIEWER, "select public.admin_stats() as s");
+    expect(Number(rows[0].s.total)).toBe(2);
+  });
+
+  it("reviewers verify profiles and records; students are notified and actions audited", async () => {
+    await as(REVIEWER, "select public.admin_set_profile_verification($1, 'verified')", [A]);
+    const edu = (await db.query<{ id: string }>("select id from public.education_records where profile_id = $1", [A])).rows[0].id;
+    await as(REVIEWER, "select public.admin_set_record_verification('education_records', $1, 'rejected', 'Please upload the certificate.')", [edu]);
+
+    const p = await db.query<{ verification_status: string; verified_by: string }>("select verification_status, verified_by from public.profiles where id = $1", [A]);
+    expect(p.rows[0]).toEqual({ verification_status: "verified", verified_by: REVIEWER });
+
+    const notes = await as<{ type: string }>(A, "select type from public.notifications order by created_at, type");
+    expect(notes.rows.map((r) => r.type).sort()).toEqual(["profile.verified", "qualification.rejected"]);
+
+    const audit = await db.query<{ action: string }>("select action from public.audit_logs where actor_id = $1 order by id", [REVIEWER]);
+    expect(audit.rows.map((r) => r.action)).toEqual(["profile.verification_set", "qualification.verification_set"]);
+  });
+
+  it("students cannot verify, even through the admin functions", async () => {
+    await expectDenied(A, "select public.admin_set_profile_verification($1, 'verified')", [A]);
+  });
+
+  it("only admins and above can suspend; suspended students cannot change data", async () => {
+    await expectDenied(REVIEWER, "select public.admin_set_account_status($1, 'suspended', 'Test')", [B]);
+    await expectDenied(ADMIN, "select public.admin_set_account_status($1, 'suspended', '')", [B]);
+    await as(ADMIN, "select public.admin_set_account_status($1, 'suspended', 'Fraudulent documents')", [B]);
+
+    await expectDenied(B, "update public.profiles set city = 'Beira' where id = $1 returning id", [B]);
+    await expectDenied(B, "insert into public.experiences (profile_id, organisation, role_title, experience_type, start_date) values ($1, 'Org', 'Role', 'internship', '2024-01-01')", [B]);
+    await expectDenied(B, "insert into storage.objects (bucket_id, name) values ('documents', $1)", [`${B}/cv/x.pdf`]);
+    const read = await as(B, "select id from public.profiles");
+    expect(read.rows).toHaveLength(1);
+
+    await as(ADMIN, "select public.admin_set_account_status($1, 'active', 'Reviewed and cleared')", [B]);
+    const ok = await as(B, "update public.profiles set city = 'Beira' where id = $1 returning id", [B]);
+    expect(ok.rows).toHaveLength(1);
+  });
+
+  it("only super admins manage administrators and read the audit log", async () => {
+    await expectDenied(ADMIN, "select public.admin_set_role('bento@example.com', 'reviewer')");
+    await expectDenied(ADMIN, "select * from public.admin_audit_log()");
+
+    await as(SUPER, "select public.admin_set_role('bento@example.com', 'reviewer')");
+    let team = await as<{ email: string; role: string }>(SUPER, "select email, role from public.admin_list_team()");
+    expect(team.rows).toEqual(expect.arrayContaining([{ email: "bento@example.com", role: "reviewer" }]));
+
+    await as(SUPER, "select public.admin_set_role('bento@example.com', null)");
+    team = await as<{ email: string; role: string }>(SUPER, "select email, role from public.admin_list_team()");
+    expect(team.rows.map((r) => r.email)).not.toContain("bento@example.com");
+
+    await expectDenied(SUPER, "select public.admin_set_role('super@handson.cloud', null)");
+    await expectDenied(SUPER, "select public.admin_set_role('nobody@example.com', 'admin')");
+
+    const log = await as<{ action: string; actor_email: string | null }>(SUPER, "select action, actor_email from public.admin_audit_log() limit 50");
+    expect(log.rows.map((r) => r.action)).toEqual(expect.arrayContaining(["admin_role.update", "account.suspended", "account.reactivated"]));
+  });
+});
