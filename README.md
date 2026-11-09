@@ -8,8 +8,8 @@ Student-first early-career talent platform for Mozambique. This repository conta
 |---|---|---|
 | 1 | Foundation and design system | Done |
 | 2 | Authentication (Google, email/password) | Done |
-| 3 | Database, Row Level Security | Done (migrations to apply) |
-| 4 | Six-step student onboarding | Not started |
+| 3 | Database, Row Level Security | Done |
+| 4 | Six-step student onboarding | Done (photo and document upload connect in Phase 6) |
 | 5 | Student dashboard | Not started |
 | 6 | Document management | Not started |
 | 7 | Admin portal | Not started |
