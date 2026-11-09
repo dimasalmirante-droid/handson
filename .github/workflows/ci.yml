@@ -6,9 +6,11 @@ on:
   pull_request:
   workflow_dispatch:
 
-# The Supabase URL and publishable key are public by design (sent to every
-# browser; access is enforced by Row Level Security). Override with
-# repository variables if the project changes.
+# CI never uses the production database. Builds and end-to-end tests use
+# the staging project when the repository variables STAGING_SUPABASE_URL and
+# STAGING_SUPABASE_PUBLISHABLE_KEY are set, and otherwise an address that
+# does not exist (public pages still render; signed-in journeys are skipped).
+# The E2E_* test accounts must be staging accounts.
 
 permissions:
   contents: read
@@ -24,6 +26,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -33,10 +37,37 @@ jobs:
       - run: npx next typegen
       - run: npx tsc --noEmit
       - run: npm test
+      - name: Database tests of the version in production, against every migration
+        # The deployed application's own database tests must keep passing
+        # after new migrations are applied (backward compatibility).
+        env:
+          PRODUCTION_APP_COMMIT: 678a8908448738eee40aad9e1067cfffb0811856
+        run: |
+          git show "$PRODUCTION_APP_COMMIT:supabase/tests/database.test.ts" > supabase/tests/production-app.test.ts
+          npx vitest run supabase/tests/production-app.test.ts
+          rm supabase/tests/production-app.test.ts
       - run: npm run build
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL || 'https://mcqrcwlvvdbhpmfretdu.supabase.co' }}
-          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_SE85ObRlSdqUvRI1gZa2zA_PXUqhohG' }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.STAGING_SUPABASE_URL || 'http://127.0.0.1:54321' }}
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.STAGING_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_offline' }}
+
+  migration-runner:
+    name: Migration runner self-test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ["54322:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: scripts/selftest/db-migrate.selftest.sh
+        env:
+          SELFTEST_ADMIN_URL: postgresql://postgres@127.0.0.1:54322/postgres
 
   e2e:
     name: End-to-end tests
@@ -44,11 +75,11 @@ jobs:
     needs: checks
     timeout-minutes: 20
     env:
-      NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL || 'https://mcqrcwlvvdbhpmfretdu.supabase.co' }}
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_SE85ObRlSdqUvRI1gZa2zA_PXUqhohG' }}
-      # Optional: set E2E_BASE_URL (repository variable) to test a deployed site instead of a local build.
+      NEXT_PUBLIC_SUPABASE_URL: ${{ vars.STAGING_SUPABASE_URL || 'http://127.0.0.1:54321' }}
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.STAGING_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_offline' }}
+      # Optional: set E2E_BASE_URL (repository variable) to test a deployed staging site instead of a local build.
       E2E_BASE_URL: ${{ vars.E2E_BASE_URL }}
-      # Optional: dedicated test accounts (repository secrets). Their journeys are skipped when absent.
+      # Optional: dedicated staging test accounts (repository secrets). Their journeys are skipped when absent.
       E2E_STUDENT_EMAIL: ${{ secrets.E2E_STUDENT_EMAIL }}
       E2E_STUDENT_PASSWORD: ${{ secrets.E2E_STUDENT_PASSWORD }}
       E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}

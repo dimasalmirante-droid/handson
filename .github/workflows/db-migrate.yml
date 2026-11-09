@@ -1,0 +1,87 @@
+name: Database migrations
+
+# Runs only when started by hand (Actions → Database migrations → Run workflow),
+# only from the main branch, and only inside the protected `staging` or
+# `production` environment, whose secrets are never available to pull
+# requests or other branches. Production runs wait for approval by the
+# environment's required reviewer.
+#
+# Actions:
+#   verify          read-only comparison of the database with the migrations
+#   plan            verify + list the migrations `apply` would run (read-only)
+#   repair-history  verify + record existing migrations as applied (history only)
+#   apply           fresh verify + plan, then apply each pending migration in its
+#                   own transaction, then verify the result
+# Any difference stops the run. Nothing is reconciled automatically.
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Database
+        type: choice
+        options: [staging, production]
+        required: true
+      action:
+        description: Action
+        type: choice
+        options: [verify, plan, repair-history, apply]
+        default: verify
+        required: true
+      baseline:
+        description: "Only while the database has no migration history: the last migration already in it (e.g. 20261109000600)"
+        type: string
+        required: false
+      confirm:
+        description: For repair-history and apply, type the database name (staging or production)
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: db-migrate-${{ inputs.target }}
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: ${{ inputs.action }} · ${{ inputs.target }}
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: ${{ inputs.target }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1.7.3
+        with:
+          version: 2.121.0
+
+      - name: Ensure psql is available
+        run: command -v psql || (sudo apt-get update -q && sudo apt-get install -y -q postgresql-client)
+
+      - name: Run ${{ inputs.action }} on ${{ inputs.target }}
+        env:
+          TARGET_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          TARGET: ${{ inputs.target }}
+          ACTION: ${{ inputs.action }}
+          BASELINE: ${{ inputs.baseline }}
+          CONFIRM: ${{ inputs.confirm }}
+        run: |
+          if [ -z "$TARGET_DB_URL" ]; then echo "::error::The ${TARGET} environment has no SUPABASE_DB_URL secret."; exit 1; fi
+          scripts/db-migrate.sh
+
+      # Logs and summaries of this public repository are public: they contain
+      # only schema structure and row counts, never data or credentials.
+      # Full reports are kept for staging only.
+      - name: Keep the comparison reports (staging)
+        if: always() && inputs.target == 'staging'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: db-${{ inputs.action }}-${{ inputs.target }}-${{ github.run_number }}
+          path: ${{ runner.temp }}/handson-db/reports/
+          retention-days: 30
+          if-no-files-found: ignore

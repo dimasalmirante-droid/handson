@@ -98,7 +98,7 @@ Security notes:
 
 ### Database migrations
 
-SQL migrations live in `supabase/migrations/`. Apply each new file in order, either in **Supabase → SQL Editor** (paste and run) or with the Supabase CLI (`supabase db push`).
+SQL migrations live in `supabase/migrations/`. They are applied to staging and production only through the **Database migrations** GitHub Actions workflow, which verifies each database before changing it. See [docs/database-migrations.md](docs/database-migrations.md).
 
 | Migration | Contents |
 |---|---|
