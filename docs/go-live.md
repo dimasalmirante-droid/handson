@@ -2,9 +2,10 @@
 
 Status as of 9 November 2026. Work through the sections in order; each item says where it is done and who does it.
 
-## 1. Database (Supabase → SQL Editor)
+## 1. Database
 
-- [ ] Apply every migration in `supabase/migrations/` that has not been run yet, in filename order. As of this checklist the latest is `20261109000600_maintenance.sql`.
+- [ ] Set up the staging project, the GitHub `staging` and `production` environments and the Vercel Preview variables as described in [database-migrations.md](database-migrations.md). Preview deployments must point to staging.
+- [ ] Production history: run **Database migrations → verify** on production with baseline `20261109000600`; when it is clean and approved, run **repair-history**. From then on, migrations reach production only through **apply** in that workflow (never the SQL Editor).
 - [ ] Run **Advisors → Security Advisor** and **Performance Advisor**. Resolve anything marked *Error*; review *Warning* items.
 - [ ] Confirm **Table Editor** shows RLS enabled on every table in `public`.
 - [ ] Confirm **Storage** shows `documents` and `avatars` as **private** buckets.
