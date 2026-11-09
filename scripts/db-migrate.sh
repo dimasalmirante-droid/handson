@@ -178,10 +178,10 @@ case "$ACTION" in
     ;;
 
   apply)
-    if (( ${#PENDING[@]} == 0 )); then summary ""; summary "Nothing to apply."; exit 0; fi
     if (( ${#APPLIED[@]} == 0 )) && [[ -n "$BASELINE" ]]; then
       fail "This target has objects but no migration history. Run repair-history first."
     fi
+    if (( ${#PENDING[@]} == 0 )); then summary ""; summary "Nothing to apply."; exit 0; fi
     target_psql -c "create schema if not exists supabase_migrations; create table if not exists supabase_migrations.schema_migrations (version text not null primary key, statements text[], name text);"
     for v in "${PENDING[@]}"; do
       file="$(file_for "$v")"; name="$(basename "$file" .sql)"; name="${name#*_}"
