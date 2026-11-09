@@ -12,7 +12,7 @@ import { defineConfig, devices } from "@playwright/test";
  * Public and security tests always run. Student and admin journeys run only
  * when their credentials are set, and use dedicated test accounts.
  */
-const baseURL = process.env.E2E_BASE_URL ?? "http://localhost:3100";
+const baseURL = process.env.E2E_BASE_URL || "http://localhost:3100";
 const local = !process.env.E2E_BASE_URL;
 
 export default defineConfig({
