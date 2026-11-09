@@ -28,6 +28,25 @@ const SUPABASE_STUBS = `
   create function auth.uid() returns uuid language sql stable as
     $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
   grant usage on schema public, auth, extensions to anon, authenticated;
+
+  create schema storage;
+  create table storage.buckets (
+    id text primary key, name text not null, public boolean default false,
+    file_size_limit bigint, allowed_mime_types text[]
+  );
+  create table storage.objects (
+    id uuid primary key default gen_random_uuid(),
+    bucket_id text references storage.buckets (id),
+    name text not null,
+    owner uuid default auth.uid(),
+    metadata jsonb,
+    unique (bucket_id, name)
+  );
+  create function storage.foldername(name text) returns text[] language sql immutable as
+    $$ select (string_to_array(name, '/'))[1:array_length(string_to_array(name, '/'), 1) - 1] $$;
+  alter table storage.objects enable row level security;
+  grant usage on schema storage to anon, authenticated;
+  grant select, insert, delete on storage.objects to authenticated;
 `;
 
 const A = "00000000-0000-4000-8000-00000000000a";
@@ -303,5 +322,47 @@ describe("integrity", () => {
         values ($1, 'Escola', 'other', $2, 'Geral', 'enrolled', 2020)`, [B, q]);
     for (let i = 0; i < 10; i++) await insert();
     await expect(insert()).rejects.toThrow(/Limit reached/);
+  });
+});
+
+describe("file storage", () => {
+  it("creates private buckets with size limits", async () => {
+    const { rows } = await db.query<{ id: string; public: boolean; file_size_limit: number }>(
+      "select id, public, file_size_limit::int from storage.buckets order by id",
+    );
+    expect(rows).toEqual([
+      { id: "avatars", public: false, file_size_limit: 2097152 },
+      { id: "documents", public: false, file_size_limit: 10485760 },
+    ]);
+  });
+
+  it("lets students upload only into their own folder", async () => {
+    await as(A, "insert into storage.objects (bucket_id, name) values ('documents', $1)", [`${A}/cv/file.pdf`]);
+    await expectDenied(A, "insert into storage.objects (bucket_id, name) values ('documents', $1)", [`${B}/cv/file.pdf`]);
+    await expectDenied(A, "insert into storage.objects (bucket_id, name) values ('documents', 'loose-file.pdf')");
+  });
+
+  it("hides one student's files from another", async () => {
+    const mine = await as(A, "select name from storage.objects");
+    expect(mine.rows).toHaveLength(1);
+    const theirs = await as(B, "select name from storage.objects");
+    expect(theirs.rows).toHaveLength(0);
+    const del = await as(B, "delete from storage.objects returning id");
+    expect(del.rows).toHaveLength(0);
+  });
+
+  it("gives anonymous visitors no access to files", async () => {
+    await expectDenied(null, "select * from storage.objects");
+  });
+
+  it("lets administrators read files for verification", async () => {
+    const { rows } = await as(ADMIN, "select name from storage.objects");
+    expect(rows).toHaveLength(1);
+  });
+
+  it("requires profile photos to sit in the owner's folder", async () => {
+    await expect(as(A, "update public.profiles set photo_path = $1 where id = $2", [`${B}/avatar.png`, A])).rejects.toThrow();
+    const ok = await as(A, "update public.profiles set photo_path = $1 where id = $2 returning photo_path", [`${A}/avatar.png`, A]);
+    expect(ok.rows).toHaveLength(1);
   });
 });

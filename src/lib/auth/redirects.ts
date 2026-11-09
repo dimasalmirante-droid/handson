@@ -1,5 +1,5 @@
 /** Routes that require a signed-in, verified user. */
-export const PROTECTED_PREFIXES = ["/onboarding", "/dashboard", "/admin"] as const;
+export const PROTECTED_PREFIXES = ["/onboarding", "/dashboard", "/admin", "/files"] as const;
 
 /** Auth pages a signed-in user should be sent away from. */
 export const GUEST_ONLY_PATHS = ["/login", "/register", "/forgot-password", "/check-email"] as const;

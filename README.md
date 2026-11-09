@@ -9,9 +9,9 @@ Student-first early-career talent platform for Mozambique. This repository conta
 | 1 | Foundation and design system | Done |
 | 2 | Authentication (Google, email/password) | Done |
 | 3 | Database, Row Level Security | Done |
-| 4 | Six-step student onboarding | Done (photo and document upload connect in Phase 6) |
+| 4 | Six-step student onboarding | Done |
 | 5 | Student dashboard | Not started |
-| 6 | Document management | Not started |
+| 6 | Document management | Done |
 | 7 | Admin portal | Not started |
 | 8 | Testing and deployment | Not started |
 
@@ -104,6 +104,7 @@ SQL migrations live in `supabase/migrations/`. Apply each new file in order, eit
 | `20261109000100_profiles.sql` | `profiles` table, auto-creation on sign-up, own-row RLS |
 | `20261109000200_core_schema.sql` | Student records, catalogues, consent, admin roles, audit log, RLS, completion function |
 | `20261109000300_reference_data.sql` | Mozambique reference data (EN + PT) |
+| `20261109000400_storage.sql` | Private `documents` and `avatars` buckets with own-folder access policies |
 
 ## Database schema
 
@@ -121,6 +122,14 @@ Every table has Row Level Security:
 - Editing a verified education record or document resets it to `unverified`.
 - Row limits per student guard against abuse (10 education, 50 skills, 30 experiences, 30 documents).
 - Document `storage_path` must start with the owner's user ID (`<uid>/…`), matching the private storage layout in Phase 6.
+
+### File storage
+
+- Buckets `documents` (PDF, Word, JPG, PNG; 10 MB) and `avatars` (JPG, PNG, WebP; 2 MB) are private.
+- Paths: `<user_id>/<document_type>/<uuid>.<ext>` and `<user_id>/avatar/<uuid>.<ext>`. Storage policies allow students only their own folder; administrators can read.
+- Upload flow (`src/app/(app)/files/actions.ts`): the server validates name, type and size and issues a one-time signed upload URL; the browser uploads directly to Storage (avoiding Vercel's ~4.5 MB request limit); the server then checks the stored size, type and the file's first bytes (magic numbers) and records it, deleting anything that fails.
+- CV, transcript and cover letter are single files (a new upload replaces the old one); certificates and other documents can be multiple.
+- Downloads go through `/files/<id>`, which checks access via RLS and redirects to a signed URL valid for 60 seconds. No permanent public URLs exist.
 
 ### Profile completion
 

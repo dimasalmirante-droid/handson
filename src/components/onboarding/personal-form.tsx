@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { savePersonal } from "@/app/(app)/onboarding/actions";
 import { StepFooter, useAutosave } from "@/components/onboarding/wizard";
 import { Field, Input, Select, describedBy } from "@/components/ui/field";
@@ -21,7 +21,9 @@ export function PersonalForm({
   initial,
   countries,
   provinces,
+  photo,
 }: {
+  photo: ReactNode;
   initial: Values;
   countries: { priority: CountryOption[]; rest: CountryOption[] };
   provinces: { id: number; name: string }[];
@@ -82,6 +84,7 @@ export function PersonalForm({
 
   return (
     <form noValidate onSubmit={(e) => e.preventDefault()}>
+      <div className="mb-8">{photo}</div>
       <div className="grid gap-x-5 gap-y-6 sm:grid-cols-3">
         {text("firstName", "First name", { required: true, autoComplete: "given-name" })}
         {text("middleName", "Middle name", { autoComplete: "additional-name" })}
@@ -156,11 +159,6 @@ export function PersonalForm({
           </div>
         </Field>
         {text("linkedinUrl", "LinkedIn profile", { type: "url", placeholder: "linkedin.com/in/your-name", hint: "Optional" })}
-      </div>
-
-      <div className="mt-8 rounded-[14px] bg-surface px-4 py-3.5 text-[15px] text-ink-muted">
-        <strong className="text-ink">Profile photo:</strong> you will be able to add a photo once secure file uploads open,
-        together with your CV and certificates.
       </div>
 
       <StepFooter

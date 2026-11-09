@@ -21,6 +21,7 @@ export type StudentProfile = {
   province_id: number | null;
   city: string | null;
   phone: string | null;
+  photo_path: string | null;
   linkedin_url: string | null;
   github_url: string | null;
   portfolio_url: string | null;
@@ -94,7 +95,7 @@ export type DocumentRecord = {
 };
 
 const PROFILE_COLUMNS =
-  "id, email, first_name, middle_name, surname, date_of_birth, gender, nationality_code, country_code, province_id, city, phone, linkedin_url, github_url, portfolio_url, employer_visibility, verification_status, onboarding_step, onboarding_completed_at";
+  "id, email, first_name, middle_name, surname, date_of_birth, gender, nationality_code, country_code, province_id, city, phone, photo_path, linkedin_url, github_url, portfolio_url, employer_visibility, verification_status, onboarding_step, onboarding_completed_at";
 
 /* All loaders below run as the signed-in user: Row Level Security limits them to their own rows. */
 
@@ -160,6 +161,14 @@ export const getDocuments = cache(async (userId: string): Promise<DocumentRecord
     .eq("profile_id", userId)
     .order("created_at", { ascending: false });
   return (data ?? []) as DocumentRecord[];
+});
+
+/** Short-lived URL for the student's profile photo (private bucket). */
+export const getPhotoUrl = cache(async (path: string | null): Promise<string | null> => {
+  if (!path) return null;
+  const supabase = await createClient();
+  const { data } = await supabase.storage.from("avatars").createSignedUrl(path, 3600);
+  return data?.signedUrl ?? null;
 });
 
 export const getCompletion = cache(async (userId: string): Promise<Completion | null> => {

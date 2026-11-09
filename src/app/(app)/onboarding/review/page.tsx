@@ -6,10 +6,12 @@ import { Button, ButtonLink, buttonClasses } from "@/components/ui/button";
 import { Alert, Badge } from "@/components/ui/feedback";
 import { requireUser } from "@/lib/auth/session";
 import { countryOptions } from "@/lib/countries";
+import { DOCUMENT_TYPE_LABELS, type DocumentType } from "@/lib/files";
 import { getCatalogues } from "@/lib/data/catalogues";
 import {
   MISSING_LABELS,
   getCompletion,
+  getDocuments,
   getEducation,
   getExperiences,
   getInterests,
@@ -62,13 +64,14 @@ const muted = (text: string) => <p className="text-ink-muted">{text}</p>;
 
 export default async function ReviewPage({ searchParams }: PageProps<"/onboarding/review">) {
   const user = await requireUser("/onboarding/review");
-  const [profile, completion, education, skills, interests, experiences, catalogues, sp] = await Promise.all([
+  const [profile, completion, education, skills, interests, experiences, documents, catalogues, sp] = await Promise.all([
     getProfile(user.id),
     getCompletion(user.id),
     getEducation(user.id),
     getSkills(user.id),
     getInterests(user.id),
     getExperiences(user.id),
+    getDocuments(user.id),
     getCatalogues(),
     searchParams,
   ]);
@@ -182,10 +185,13 @@ export default async function ReviewPage({ searchParams }: PageProps<"/onboardin
         </Section>
 
         <Section id="documents" {...s.documents}>
+          <p>
+            {documents.length === 0
+              ? "No documents uploaded."
+              : documents.map((d) => DOCUMENT_TYPE_LABELS[d.document_type as DocumentType] ?? d.title).join(", ")}
+          </p>
           <p className="text-ink-muted">
-            {[profile.linkedin_url && "LinkedIn", profile.github_url && "GitHub", profile.portfolio_url && "Portfolio"].filter(Boolean).join(" · ") ||
-              "No links added."}{" "}
-            Document upload opens soon.
+            Links: {[profile.linkedin_url && "LinkedIn", profile.github_url && "GitHub", profile.portfolio_url && "Portfolio"].filter(Boolean).join(" · ") || "none added"}
           </p>
         </Section>
       </div>

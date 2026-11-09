@@ -3,20 +3,14 @@
 import { useState } from "react";
 import { saveLinks } from "@/app/(app)/onboarding/actions";
 import { StepFooter, useAutosave } from "@/components/onboarding/wizard";
-import { Alert, Badge } from "@/components/ui/feedback";
+import { DocumentManager } from "@/components/files/document-manager";
 import { Field, Input, describedBy } from "@/components/ui/field";
+import type { DocumentRecord } from "@/lib/data/student";
 import type { FieldErrors } from "@/lib/validation/profile";
 
 type Values = Record<string, string>;
 
-const DOCUMENTS = [
-  { type: "cv", label: "CV", required: true, note: "Counts for 10% of your profile" },
-  { type: "transcript", label: "Academic transcript", required: true, note: "Counts for 10% of your profile" },
-  { type: "certificate", label: "Certificates", required: false, note: "Optional, you can add several" },
-  { type: "cover_letter", label: "Cover letter", required: false, note: "Optional" },
-];
-
-export function DocumentsStep({ initial, uploaded }: { initial: Values; uploaded: string[] }) {
+export function DocumentsStep({ initial, documents }: { initial: Values; documents: DocumentRecord[] }) {
   const [values, setValues] = useState<Values>(initial);
   const [fields, setFields] = useState<FieldErrors>({});
   const autosave = useAutosave((v: Values) => saveLinks(v, "draft"));
@@ -49,24 +43,9 @@ export function DocumentsStep({ initial, uploaded }: { initial: Values; uploaded
     <div>
       <section aria-labelledby="docs-heading">
         <h2 id="docs-heading" className="text-xl">Documents</h2>
-        <Alert tone="info" className="mt-4" title="Secure document upload is coming next">
-          Uploads will be stored privately and only you and authorised Handson staff will be able to open them. You can finish
-          your profile now and add documents as soon as uploads open.
-        </Alert>
-        <ul className="mt-4 divide-y divide-line rounded-[16px] border border-line">
-          {DOCUMENTS.map((d) => (
-            <li key={d.type} className="flex items-center justify-between gap-4 px-4 py-3.5">
-              <div>
-                <p className="font-medium">
-                  {d.label}
-                  {d.required && <span className="ml-0.5 text-danger" aria-hidden>*</span>}
-                </p>
-                <p className="text-sm text-ink-muted">{d.note}</p>
-              </div>
-              {uploaded.includes(d.type) ? <Badge tone="success">Uploaded</Badge> : <Badge>Not uploaded</Badge>}
-            </li>
-          ))}
-        </ul>
+        <div className="mt-4">
+          <DocumentManager documents={documents} />
+        </div>
       </section>
 
       <section aria-labelledby="links-heading" className="mt-10">

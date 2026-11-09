@@ -19,7 +19,7 @@ export default async function DocumentsPage() {
           githubUrl: profile?.github_url ?? "",
           portfolioUrl: profile?.portfolio_url ?? "",
         }}
-        uploaded={[...new Set(documents.map((d) => d.document_type))]}
+        documents={documents}
       />
     </>
   );
