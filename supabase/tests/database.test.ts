@@ -40,6 +40,7 @@ const SUPABASE_STUBS = `
     name text not null,
     owner uuid default auth.uid(),
     metadata jsonb,
+    created_at timestamptz default now(),
     unique (bucket_id, name)
   );
   create function storage.foldername(name text) returns text[] language sql immutable as
@@ -460,5 +461,37 @@ describe("administration", () => {
 
     const log = await as<{ action: string; actor_email: string | null }>(SUPER, "select action, actor_email from public.admin_audit_log() limit 50");
     expect(log.rows.map((r) => r.action)).toEqual(expect.arrayContaining(["admin_role.update", "account.suspended", "account.reactivated"]));
+  });
+});
+
+describe("maintenance", () => {
+  const SUPER = "00000000-0000-4000-8000-0000000000ff";
+
+  it("lists only unreferenced, older files, for super admins only", async () => {
+    const qualification = (await db.query<{ id: number }>("select id from public.qualification_types limit 1")).rows[0].id;
+    void qualification;
+    await db.exec(`
+      insert into storage.objects (bucket_id, name, metadata, created_at) values
+        ('documents', '${A}/cv/orphan.pdf', '{"size": 1200}', now() - interval '3 days'),
+        ('documents', '${A}/cv/recent.pdf', '{"size": 900}', now()),
+        ('documents', '${A}/cv/kept.pdf', '{"size": 800}', now() - interval '3 days');
+      insert into public.documents (profile_id, document_type, title, storage_path, original_filename, mime_type, size_bytes)
+        values ('${A}', 'cv', 'CV', '${A}/cv/kept.pdf', 'kept.pdf', 'application/pdf', 800);
+    `);
+    const { rows } = await as<{ name: string }>(SUPER, "select name from public.admin_orphaned_files()");
+    const names = rows.map((r) => r.name);
+    expect(names).toContain(`${A}/cv/orphan.pdf`);
+    expect(names).not.toContain(`${A}/cv/recent.pdf`);
+    expect(names).not.toContain(`${A}/cv/kept.pdf`);
+    await expectDenied(ADMIN, "select * from public.admin_orphaned_files()");
+  });
+
+  it("super admins can delete orphans but never referenced files", async () => {
+    const kept = await as(SUPER, "delete from storage.objects where name = $1 returning name", [`${A}/cv/kept.pdf`]);
+    expect(kept.rows).toHaveLength(0);
+    const orphan = await as(SUPER, "delete from storage.objects where name = $1 returning name", [`${A}/cv/orphan.pdf`]);
+    expect(orphan.rows).toHaveLength(1);
+    const asAdmin = await as(ADMIN, "delete from storage.objects where name = $1 returning name", [`${A}/cv/recent.pdf`]);
+    expect(asAdmin.rows).toHaveLength(0);
   });
 });

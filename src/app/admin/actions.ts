@@ -82,3 +82,31 @@ export async function revokeRole(email: string): Promise<AdminResult> {
   fd.set("role", "revoke");
   return setRole(null, fd);
 }
+
+/** Remove files that were uploaded but never recorded (super admins). Referenced files are protected by the database. */
+export async function cleanOrphanedFiles(): Promise<AdminResult> {
+  await requireAdmin("super_admin");
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("admin_orphaned_files");
+  if (error) return failure(error, "Orphaned files could not be listed.");
+  const files = (data ?? []) as { bucket_id: string; name: string; size_bytes: number }[];
+  if (files.length === 0) return { ok: true, message: "No orphaned files found." };
+
+  let removed = 0;
+  for (const bucket of ["documents", "avatars"]) {
+    const names = files.filter((f) => f.bucket_id === bucket).map((f) => f.name);
+    if (!names.length) continue;
+    const { data: out, error: rmError } = await supabase.storage.from(bucket).remove(names);
+    if (rmError) console.error("orphan removal failed", bucket, rmError.message);
+    removed += out?.length ?? 0;
+  }
+  const bytes = files.reduce((n, f) => n + Number(f.size_bytes || 0), 0);
+  await supabase.rpc("log_admin_action", {
+    p_action: "storage.orphans_removed",
+    p_target_table: "storage.objects",
+    p_target_id: null,
+    p_metadata: { found: files.length, removed, bytes },
+  });
+  revalidatePath("/admin/maintenance");
+  return { ok: removed === files.length, message: `Removed ${removed} of ${files.length} orphaned files.` };
+}

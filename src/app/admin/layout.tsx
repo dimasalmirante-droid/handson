@@ -18,6 +18,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       ? [
           { href: "/admin/team", label: "Team" },
           { href: "/admin/audit", label: "Audit log" },
+          { href: "/admin/maintenance", label: "Maintenance" },
         ]
       : []),
   ];

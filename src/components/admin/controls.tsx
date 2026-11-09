@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState, useTransition } from "react";
-import { revokeRole, setAccountStatus, setProfileVerification, setRecordVerification, setRole, type AdminResult } from "@/app/admin/actions";
+import { cleanOrphanedFiles, revokeRole, setAccountStatus, setProfileVerification, setRecordVerification, setRole, type AdminResult } from "@/app/admin/actions";
 import { Button } from "@/components/ui/button";
 import { Alert, Badge } from "@/components/ui/feedback";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
@@ -173,5 +173,28 @@ export function RevokeButton({ email }: { email: string }) {
       </Button>
       {error && <span className="text-sm text-danger">{error}</span>}
     </span>
+  );
+}
+
+export function CleanOrphansButton({ count }: { count: number }) {
+  const [pending, start] = useTransition();
+  const [result, setResult] = useState<AdminResult | null>(null);
+  return (
+    <div className="flex flex-col gap-3">
+      <div>
+        <Button
+          variant="secondary"
+          disabled={count === 0}
+          loading={pending}
+          onClick={() => {
+            if (!window.confirm(`Permanently delete ${count} orphaned file(s)?`)) return;
+            start(async () => setResult(await cleanOrphanedFiles()));
+          }}
+        >
+          Remove orphaned files
+        </Button>
+      </div>
+      {result && <Alert tone={result.ok ? "success" : "danger"}>{result.message}</Alert>}
+    </div>
   );
 }
