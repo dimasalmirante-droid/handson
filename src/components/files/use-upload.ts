@@ -47,7 +47,12 @@ export function useUpload(kind: FileKind, documentType?: string) {
       if (error) return fail("The upload failed. Check your connection and try again.");
 
       setState({ phase: "verifying", fileName: file.name });
-      const result = await finalizeUpload({ kind, path: ticket.path, documentType, originalName: file.name, title });
+      const result = await Promise.race([
+        finalizeUpload({ kind, path: ticket.path, documentType, originalName: file.name, title }),
+        new Promise<{ ok: false; error: string }>((resolve) =>
+          setTimeout(() => resolve({ ok: false, error: "Verification is taking too long. Refresh the page to see if the file was saved, or try again." }), 60_000),
+        ),
+      ]);
       if (!result.ok) return fail(result.error);
 
       setState({ phase: "done", fileName: file.name });

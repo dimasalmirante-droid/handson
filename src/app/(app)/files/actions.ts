@@ -72,32 +72,26 @@ export async function prepareUpload(input: {
   return { ok: true, path: data.path, token: data.token };
 }
 
-/** Read the first bytes of a stored file without downloading all of it. */
+/** Reject if a step takes longer than `ms`, so a stalled request cannot hang the upload. */
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms} ms`)), ms);
+    promise.then(
+      (v) => { clearTimeout(timer); resolve(v); },
+      (e) => { clearTimeout(timer); reject(e); },
+    );
+  });
+}
+
+/** First bytes of a stored file, for the content check (files are at most 10 MB). */
 async function readHead(bucket: string, path: string): Promise<Uint8Array | null> {
   const supabase = await createClient();
-  const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 60);
-  if (!data?.signedUrl) return null;
-  const res = await fetch(data.signedUrl, { headers: { Range: "bytes=0-31" }, cache: "no-store" });
-  if (!res.ok || !res.body) return null;
-  const reader = res.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let total = 0;
-  while (total < 32) {
-    const { value, done } = await reader.read();
-    if (done || !value) break;
-    chunks.push(value);
-    total += value.length;
+  const { data, error } = await withTimeout(supabase.storage.from(bucket).download(path), 20_000, "download");
+  if (error || !data) {
+    console.error("storage download failed", error?.message);
+    return null;
   }
-  await reader.cancel().catch(() => {});
-  const out = new Uint8Array(Math.min(total, 32));
-  let offset = 0;
-  for (const c of chunks) {
-    const take = Math.min(c.length, out.length - offset);
-    out.set(c.subarray(0, take), offset);
-    offset += take;
-    if (offset >= out.length) break;
-  }
-  return out;
+  return new Uint8Array(await data.slice(0, 32).arrayBuffer());
 }
 
 /**
@@ -123,11 +117,20 @@ export async function finalizeUpload(input: {
   if (!expected.test(input.path)) return { ok: false, error: GENERIC };
 
   const reject = async (message: string): Promise<FileResult> => {
-    await bucket.remove([input.path]);
+    await bucket.remove([input.path]).catch(() => {});
     return { ok: false, error: message };
   };
 
-  const { data: info, error: infoError } = await bucket.info(input.path);
+  try {
+    return await verifyAndRecord();
+  } catch (e) {
+    console.error("finalizeUpload failed", input.kind, e instanceof Error ? e.message : e);
+    return reject("We could not verify the file. Please try again.");
+  }
+
+  async function verifyAndRecord(): Promise<FileResult> {
+
+  const { data: info, error: infoError } = await withTimeout(bucket.info(input.path), 15_000, "info");
   if (infoError || !info) {
     console.error("storage info failed", infoError?.message);
     return { ok: false, error: GENERIC };
@@ -187,6 +190,7 @@ export async function finalizeUpload(input: {
 
   refresh();
   return { ok: true, id: row.id };
+  }
 }
 
 export async function deleteDocument(id: string): Promise<FileResult> {
