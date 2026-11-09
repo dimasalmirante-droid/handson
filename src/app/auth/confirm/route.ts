@@ -1,7 +1,6 @@
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 import { safeNextPath } from "@/lib/auth/redirects";
-import { postAuthPath } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 
 const ALLOWED_TYPES: EmailOtpType[] = ["signup", "email", "recovery", "email_change", "invite"];
@@ -22,7 +21,6 @@ export async function GET(request: NextRequest) {
   const next = searchParams.get("next");
 
   const supabase = await createClient();
-  let userId: string | null = null;
   let isRecovery = false;
 
   if (tokenHash && type && ALLOWED_TYPES.includes(type)) {
@@ -31,7 +29,6 @@ export async function GET(request: NextRequest) {
       console.error("verifyOtp failed", error?.code, error?.message);
       return NextResponse.redirect(new URL("/login?error=link", origin));
     }
-    userId = data.user.id;
     isRecovery = type === "recovery";
   } else if (code) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
@@ -39,7 +36,6 @@ export async function GET(request: NextRequest) {
       console.error("exchangeCodeForSession (email link) failed", error?.code, error?.message);
       return NextResponse.redirect(new URL("/login?error=link", origin));
     }
-    userId = data.user.id;
     isRecovery = next === "/reset-password";
   } else {
     return NextResponse.redirect(new URL("/login?error=link", origin));
@@ -49,8 +45,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/reset-password", origin));
   }
 
-  const home = await postAuthPath(userId);
-  const target = new URL(next ? safeNextPath(next, home) : home, origin);
+  const target = new URL(next ? safeNextPath(next, "/start") : "/start", origin);
   target.searchParams.set("notice", "verified");
   return NextResponse.redirect(target);
 }

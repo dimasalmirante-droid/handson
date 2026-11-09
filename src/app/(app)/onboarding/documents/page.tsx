@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import { DocumentsStep } from "@/components/onboarding/documents-step";
 import { StepHeader } from "@/components/onboarding/wizard";
-import { requireUser } from "@/lib/auth/session";
+import { requireStudent } from "@/lib/auth/session";
 import { getDocuments, getProfile } from "@/lib/data/student";
 
 export const metadata: Metadata = { title: "Documents and portfolio" };
 
 export default async function DocumentsPage() {
-  const user = await requireUser("/onboarding/documents");
+  const user = await requireStudent("/onboarding/documents");
   const [profile, documents] = await Promise.all([getProfile(user.id), getDocuments(user.id)]);
 
   return (

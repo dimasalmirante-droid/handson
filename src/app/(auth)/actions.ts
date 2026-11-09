@@ -1,9 +1,10 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { googleCallbackUrl } from "@/lib/auth/oauth";
 import { requestOrigin } from "@/lib/auth/origin";
 import { safeNextPath } from "@/lib/auth/redirects";
-import { postAuthPath } from "@/lib/auth/session";
+import { getCurrentLegalDocuments } from "@/lib/data/legal";
 import { createClient } from "@/lib/supabase/server";
 import {
   fieldErrors,
@@ -21,9 +22,6 @@ export type FormState = {
   success?: string;
 };
 
-/** Bump when the Terms or Privacy Policy change materially. */
-const TERMS_VERSION = "draft-2026-11";
-
 const GENERIC_ERROR ="Something went wrong. Please try again in a moment.";
 
 function pick(formData: FormData, keys: string[]) {
@@ -35,22 +33,41 @@ function pick(formData: FormData, keys: string[]) {
 /* ------------------------------------------------------------------ */
 
 export async function registerAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  const raw = pick(formData, ["firstName", "surname", "email", "password", "acceptTerms"]);
+  const raw = pick(formData, ["firstName", "surname", "email", "password", "acceptTerms", "acknowledgePrivacy", "legalTermsId", "legalPrivacyId", "next"]);
   const parsed = registerSchema.safeParse(raw);
   const values = { firstName: raw.firstName, surname: raw.surname, email: raw.email };
   if (!parsed.success) return { fields: fieldErrors(parsed.error), values };
 
+  // When final Terms and Privacy Notice are in force, the form shows them by
+  // version and asks for acceptance and acknowledgement separately. Only the
+  // exact current versions are recorded (the database checks again).
+  const legal = await getCurrentLegalDocuments();
+  const metadataLegal: Record<string, string> = {};
+  if (legal.terms && legal.privacy) {
+    if (raw.acknowledgePrivacy !== "on") {
+      return { fields: { acknowledgePrivacy: "Confirm that you have read the Privacy Notice." }, values };
+    }
+    if (raw.legalTermsId !== legal.terms.id || raw.legalPrivacyId !== legal.privacy.id) {
+      return { error: "The Terms or Privacy Notice have just been updated. Please review them and try again.", values };
+    }
+    metadataLegal.legal_terms_id = legal.terms.id;
+    metadataLegal.legal_privacy_id = legal.privacy.id;
+  }
+
   const { firstName, surname, email, password } = parsed.data;
   const supabase = await createClient();
   const origin = await requestOrigin();
+  const next = safeNextPath(raw.next, "/onboarding");
 
   const { error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      emailRedirectTo: `${origin}/auth/confirm?next=/onboarding`,
-      // terms_version is recorded as Terms and Privacy consent by the sign-up trigger.
-      data: { first_name: firstName, surname, terms_version: TERMS_VERSION },
+      emailRedirectTo: `${origin}/auth/confirm?next=${encodeURIComponent(next)}`,
+      // signup_intent marks a student registration: the sign-up trigger then
+      // creates a student profile even if an employer invitation is pending.
+      // It can only add a profile for the person themselves; it grants nothing.
+      data: { first_name: firstName, surname, signup_intent: "student", ...metadataLegal },
     },
   });
 
@@ -106,8 +123,7 @@ export async function loginAction(_prev: FormState, formData: FormData): Promise
     return { error: "Please verify your email address first.", values };
   }
 
-  const home = await postAuthPath(data.user.id);
-  redirect(raw.next ? safeNextPath(raw.next, home) : home);
+  redirect(raw.next ? safeNextPath(raw.next, "/start") : "/start");
 }
 
 /* ------------------------------------------------------------------ */
@@ -115,16 +131,20 @@ export async function loginAction(_prev: FormState, formData: FormData): Promise
 /* ------------------------------------------------------------------ */
 
 export async function googleAction(formData: FormData): Promise<void> {
-  const next = safeNextPath(String(formData.get("next") ?? ""), "");
   const supabase = await createClient();
   const origin = await requestOrigin();
-  const callback = new URL("/auth/callback", origin);
-  if (next) callback.searchParams.set("next", next);
+  // intent=student is set only by the student registration page. After
+  // sign-in, the callback creates a student profile for a new account that
+  // has no workspace yet.
+  const callback = googleCallbackUrl(origin, {
+    next: String(formData.get("next") ?? ""),
+    intent: String(formData.get("intent") ?? ""),
+  });
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: callback.toString(),
+      redirectTo: callback,
       queryParams: { prompt: "select_account" },
     },
   });
@@ -185,13 +205,14 @@ export async function resetPasswordAction(_prev: FormState, formData: FormData):
     return { error: GENERIC_ERROR };
   }
 
-  redirect(`${await postAuthPath(auth.user.id)}?notice=password-updated`);
+  redirect("/start?notice=password-updated");
 }
 
 /* ------------------------------------------------------------------ */
 /* Sign out                                                            */
 /* ------------------------------------------------------------------ */
 
+/** Always available: never checks suspension, legal acceptance or workspaces. */
 export async function signOutAction(): Promise<void> {
   const supabase = await createClient();
   await supabase.auth.signOut({ scope: "local" });

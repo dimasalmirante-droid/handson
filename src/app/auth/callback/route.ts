@@ -1,12 +1,19 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { safeNextPath } from "@/lib/auth/redirects";
-import { postAuthPath } from "@/lib/auth/session";
+import { ensureStudentProfile } from "@/lib/auth/student-profile";
 import { createClient } from "@/lib/supabase/server";
 
 /**
- * OAuth (Google) return URL. Exchanges the one-time code for a session,
- * then sends first-time users to onboarding and returning users to their
- * dashboard (or to a safe `next` path).
+ * OAuth (Google) return URL. Exchanges the one-time code for a session, then
+ * continues to a safe `next` path or to /start, which picks the workspace.
+ *
+ * `intent=student` is added only by the student registration page. If the
+ * account has no workspace at all yet (for example, the sign-up trigger did
+ * not create a student profile because an employer invitation is pending),
+ * a student profile is created for the person themselves. This never grants
+ * anything else, and never adds a profile to someone who already has a
+ * workspace. Invitation acceptance does not happen here: it needs the token
+ * and is done only on the invitation page.
  */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
@@ -24,7 +31,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/login?error=google", origin));
   }
 
-  const home = await postAuthPath(data.user.id);
+  if (searchParams.get("intent") === "student") {
+    await ensureStudentProfile(supabase);
+  }
+
   const next = searchParams.get("next");
-  return NextResponse.redirect(new URL(next ? safeNextPath(next, home) : home, origin));
+  return NextResponse.redirect(new URL(next ? safeNextPath(next, "/start") : "/start", origin));
 }

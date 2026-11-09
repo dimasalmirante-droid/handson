@@ -3,14 +3,19 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { signOutAction } from "@/app/(auth)/actions";
 import { AdminNav } from "@/components/admin/nav";
+import { WorkspaceSwitcher } from "@/components/layout/workspace-switcher";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/feedback";
 import { ROLE_LABELS, requireAdmin, roleAtLeast } from "@/lib/auth/admin";
+import { getContexts } from "@/lib/auth/contexts";
+import { listWorkspaces } from "@/lib/auth/destination";
 
 export const metadata: Metadata = { title: { default: "Admin", template: "%s | Handson Admin" } };
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const { user, role } = await requireAdmin("reviewer");
+  const contexts = await getContexts();
+  const workspaces = contexts ? listWorkspaces(contexts) : [];
   const items = [
     { href: "/admin", label: "Overview" },
     { href: "/admin/students", label: "Students" },
@@ -18,6 +23,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       ? [
           { href: "/admin/team", label: "Team" },
           { href: "/admin/audit", label: "Audit log" },
+          { href: "/admin/legal", label: "Legal documents" },
           { href: "/admin/maintenance", label: "Maintenance" },
         ]
       : []),
@@ -33,8 +39,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             </Link>
             <Badge tone="lime">Admin</Badge>
           </div>
-          <div className="flex items-center gap-4">
-            <span className="hidden text-sm text-[#D9D6E0] sm:inline">
+          <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+            <WorkspaceSwitcher workspaces={workspaces} current="admin" inverse />
+            <span className="hidden text-sm text-[#D9D6E0] md:inline">
               {user.email} · {ROLE_LABELS[role]}
             </span>
             <form action={signOutAction}>

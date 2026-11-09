@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireUser } from "@/lib/auth/session";
+import { requireStudent } from "@/lib/auth/session";
 import {
   DOCUMENT_TYPES,
   DOCUMENT_TYPE_LABELS,
@@ -44,7 +44,7 @@ export async function prepareUpload(input: {
   size: number;
   mimeType: string;
 }): Promise<UploadTicket> {
-  const user = await requireUser();
+  const user = await requireStudent();
   const metaError = checkFileMeta(input.kind, { name: input.fileName, size: input.size, type: input.mimeType });
   if (metaError) return { ok: false, error: metaError };
   const format = formatFor(input.kind, input.fileName, input.mimeType)!;
@@ -106,7 +106,7 @@ export async function finalizeUpload(input: {
   originalName: string;
   title?: string;
 }): Promise<FileResult> {
-  const user = await requireUser();
+  const user = await requireStudent();
   const supabase = await createClient();
   const rules = FILE_RULES[input.kind];
   const bucket = supabase.storage.from(rules.bucket);
@@ -194,7 +194,7 @@ export async function finalizeUpload(input: {
 }
 
 export async function deleteDocument(id: string): Promise<FileResult> {
-  const user = await requireUser();
+  const user = await requireStudent();
   const supabase = await createClient();
   const { data: doc } = await supabase
     .from("documents")
@@ -212,7 +212,7 @@ export async function deleteDocument(id: string): Promise<FileResult> {
 }
 
 export async function removePhoto(): Promise<FileResult> {
-  const user = await requireUser();
+  const user = await requireStudent();
   const supabase = await createClient();
   const { data } = await supabase.from("profiles").select("photo_path").eq("id", user.id).single();
   if (!data?.photo_path) return { ok: true };

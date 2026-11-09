@@ -38,10 +38,11 @@ function GoogleSubmit({ label }: { label: string }) {
 }
 
 /** "Continue with Google" — a separate form so it never submits the email form. */
-export function GoogleForm({ label, next }: { label: string; next?: string }) {
+export function GoogleForm({ label, next, intent }: { label: string; next?: string; intent?: "student" }) {
   return (
     <form action={googleAction}>
       {next && <input type="hidden" name="next" value={next} />}
+      {intent && <input type="hidden" name="intent" value={intent} />}
       <GoogleSubmit label={label} />
     </form>
   );
@@ -103,11 +104,37 @@ export function LoginForm({ next }: { next?: string }) {
   );
 }
 
-export function RegisterForm({ termsUrl, privacyUrl }: { termsUrl: string; privacyUrl: string }) {
+export type RegisterLegal = {
+  terms: { id: string; version: string; href: string };
+  privacy: { id: string; version: string; href: string };
+} | null;
+
+function FieldError({ id, message }: { id: string; message?: string }) {
+  if (!message) return null;
+  return (
+    <p id={`${id}-error`} role="alert" className="mt-1.5 text-sm font-medium text-danger">
+      {message}
+    </p>
+  );
+}
+
+const linkClass = "font-semibold text-indigo hover:underline";
+
+/**
+ * Email registration. Before final legal documents are in force, one
+ * checkbox covers the Terms and Privacy Policy (as before) and nothing is
+ * recorded against a version. Once they are in force, the current versions
+ * are named and Terms acceptance and Privacy Notice acknowledgement are
+ * separate checkboxes.
+ */
+export function RegisterForm({ termsUrl, privacyUrl, legal, next }: { termsUrl: string; privacyUrl: string; legal?: RegisterLegal; next?: string }) {
   const [state, action] = useActionState(registerAction, initial);
+  const termsError = state.fields?.acceptTerms;
+  const privacyError = state.fields?.acknowledgePrivacy;
   return (
     <form action={action} noValidate className="flex flex-col gap-5">
       {state.error && <Alert tone="danger">{state.error}</Alert>}
+      {next && <input type="hidden" name="next" value={next} />}
       <div className="grid gap-5 sm:grid-cols-2">
         <TextField id="firstName" label="First name" autoComplete="given-name" required
           defaultValue={state.values?.firstName} error={state.fields?.firstName} />
@@ -119,33 +146,74 @@ export function RegisterForm({ termsUrl, privacyUrl }: { termsUrl: string; priva
       <TextField id="password" label="Password" type="password" autoComplete="new-password" required
         minLength={PASSWORD_MIN} hint={`At least ${PASSWORD_MIN} characters, including a letter and a number.`}
         error={state.fields?.password} />
-      <div>
-        <Checkbox
-          id="acceptTerms"
-          name="acceptTerms"
-          required
-          aria-invalid={state.fields?.acceptTerms ? true : undefined}
-          aria-describedby={state.fields?.acceptTerms ? "acceptTerms-error" : undefined}
-          label={
-            <>
-              I agree to the{" "}
-              <a href={termsUrl} target="_blank" rel="noopener" className="font-semibold text-indigo hover:underline">
-                Terms and Conditions
-              </a>{" "}
-              and have read the{" "}
-              <a href={privacyUrl} target="_blank" rel="noopener" className="font-semibold text-indigo hover:underline">
-                Privacy Policy
-              </a>
-              .
-            </>
-          }
-        />
-        {state.fields?.acceptTerms && (
-          <p id="acceptTerms-error" role="alert" className="mt-1.5 text-sm font-medium text-danger">
-            {state.fields.acceptTerms}
-          </p>
-        )}
-      </div>
+      {legal ? (
+        <div className="flex flex-col gap-3">
+          <input type="hidden" name="legalTermsId" value={legal.terms.id} />
+          <input type="hidden" name="legalPrivacyId" value={legal.privacy.id} />
+          <div>
+            <Checkbox
+              id="acceptTerms"
+              name="acceptTerms"
+              required
+              aria-invalid={termsError ? true : undefined}
+              aria-describedby={termsError ? "acceptTerms-error" : undefined}
+              label={
+                <>
+                  I accept the{" "}
+                  <a href={legal.terms.href} target="_blank" rel="noopener" className={linkClass}>
+                    Terms and Conditions
+                  </a>{" "}
+                  (version {legal.terms.version}).
+                </>
+              }
+            />
+            <FieldError id="acceptTerms" message={termsError} />
+          </div>
+          <div>
+            <Checkbox
+              id="acknowledgePrivacy"
+              name="acknowledgePrivacy"
+              required
+              aria-invalid={privacyError ? true : undefined}
+              aria-describedby={privacyError ? "acknowledgePrivacy-error" : undefined}
+              label={
+                <>
+                  I have read and acknowledge the{" "}
+                  <a href={legal.privacy.href} target="_blank" rel="noopener" className={linkClass}>
+                    Privacy Notice
+                  </a>{" "}
+                  (version {legal.privacy.version}).
+                </>
+              }
+            />
+            <FieldError id="acknowledgePrivacy" message={privacyError} />
+          </div>
+        </div>
+      ) : (
+        <div>
+          <Checkbox
+            id="acceptTerms"
+            name="acceptTerms"
+            required
+            aria-invalid={termsError ? true : undefined}
+            aria-describedby={termsError ? "acceptTerms-error" : undefined}
+            label={
+              <>
+                I agree to the{" "}
+                <a href={termsUrl} target="_blank" rel="noopener" className={linkClass}>
+                  Terms and Conditions
+                </a>{" "}
+                and have read the{" "}
+                <a href={privacyUrl} target="_blank" rel="noopener" className={linkClass}>
+                  Privacy Policy
+                </a>
+                .
+              </>
+            }
+          />
+          <FieldError id="acceptTerms" message={termsError} />
+        </div>
+      )}
       <Submit>Create account</Submit>
     </form>
   );

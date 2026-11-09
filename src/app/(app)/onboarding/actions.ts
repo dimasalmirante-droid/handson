@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { PostgrestError } from "@supabase/supabase-js";
-import { requireUser } from "@/lib/auth/session";
+import { requireStudent } from "@/lib/auth/session";
 import { REVIEW_STEP, nextPath } from "@/lib/onboarding/steps";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -41,7 +41,7 @@ function dbError(error: PostgrestError): SaveResult {
 }
 
 async function context() {
-  const user = await requireUser("/onboarding");
+  const user = await requireStudent("/onboarding");
   const supabase = await createClient();
   return { user, supabase };
 }

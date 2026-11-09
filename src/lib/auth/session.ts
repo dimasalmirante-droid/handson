@@ -1,6 +1,7 @@
 import "server-only";
 import { redirect } from "next/navigation";
 import { cache } from "react";
+import { getContexts, getLegalStatus } from "@/lib/auth/contexts";
 import { createClient } from "@/lib/supabase/server";
 
 export type CurrentUser = {
@@ -39,14 +40,38 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   };
 });
 
-/** Use at the top of every protected page, layout and Server Action. Suspended accounts are signed out. */
-export async function requireUser(nextPath?: string): Promise<CurrentUser> {
+/**
+ * Use at the top of every protected page, layout and Server Action.
+ * 1. Signed-out visitors go to login.
+ * 2. Suspended accounts (with or without a student profile) are signed out.
+ * 3. Accounts that have not accepted the current Terms and Privacy Notice go
+ *    to the acceptance screen (only once final documents are in force).
+ */
+export async function requireUser(nextPath?: string, opts: { skipLegal?: boolean } = {}): Promise<CurrentUser> {
   const user = await getCurrentUser();
   if (!user) {
     redirect(nextPath ? `/login?next=${encodeURIComponent(nextPath)}` : "/login");
   }
-  const profile = await getOwnProfile(user.id);
-  if (profile?.account_status === "suspended") redirect("/auth/signout?reason=suspended");
+  const contexts = await getContexts();
+  if (contexts?.account_status === "suspended") redirect("/auth/signout?reason=suspended");
+  if (!opts.skipLegal) {
+    const legal = await getLegalStatus();
+    if (legal.active && legal.required.length > 0) {
+      redirect(nextPath ? `/legal/accept?next=${encodeURIComponent(nextPath)}` : "/legal/accept");
+    }
+  }
+  return user;
+}
+
+/**
+ * Student areas (onboarding, dashboard, uploads). People without a student
+ * profile — for example employer-only users — go to their workspace list,
+ * where they can create one.
+ */
+export async function requireStudent(nextPath?: string): Promise<CurrentUser> {
+  const user = await requireUser(nextPath);
+  const contexts = await getContexts();
+  if (!contexts?.student) redirect("/workspaces");
   return user;
 }
 
@@ -60,17 +85,3 @@ export const getOwnProfile = cache(async (userId: string): Promise<Profile | nul
     .maybeSingle();
   return data;
 });
-
-/** Administrators go to the admin portal; first-time students to onboarding; returning students to their dashboard. */
-export async function postAuthPath(userId: string): Promise<"/onboarding" | "/dashboard" | "/admin"> {
-  const supabase = await createClient();
-  const { data: role } = await supabase
-    .from("administrator_roles")
-    .select("role")
-    .eq("user_id", userId)
-    .is("revoked_at", null)
-    .maybeSingle();
-  if (role) return "/admin";
-  const profile = await getOwnProfile(userId);
-  return profile?.onboarding_completed_at ? "/dashboard" : "/onboarding";
-}

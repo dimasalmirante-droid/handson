@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 import { EducationStep } from "@/components/onboarding/education-step";
 import { StepHeader } from "@/components/onboarding/wizard";
-import { requireUser } from "@/lib/auth/session";
+import { requireStudent } from "@/lib/auth/session";
 import { getCatalogues } from "@/lib/data/catalogues";
 import { getEducation } from "@/lib/data/student";
 
 export const metadata: Metadata = { title: "Education" };
 
 export default async function EducationPage() {
-  const user = await requireUser("/onboarding/education");
+  const user = await requireStudent("/onboarding/education");
   const [records, catalogues] = await Promise.all([getEducation(user.id), getCatalogues()]);
 
   return (

@@ -17,6 +17,21 @@ export async function logIn(page: Page, who: { email: string; password: string }
   await page.getByLabel("Password", { exact: false }).first().fill(who.password);
   await page.getByRole("button", { name: "Log in" }).click();
   await page.waitForURL((url) => !url.pathname.startsWith("/login"), { timeout: 20_000 });
+  await acceptLegalIfAsked(page);
+}
+
+/**
+ * Once final Terms and Privacy Notice are published, each account is asked
+ * once to accept them. Test accounts accept so the journeys can continue.
+ */
+export async function acceptLegalIfAsked(page: Page) {
+  if (!new URL(page.url()).pathname.startsWith("/legal/accept")) return;
+  for (const name of ["acceptTerms", "acknowledgePrivacy"]) {
+    const box = page.locator(`input[name="${name}"]`);
+    if (await box.count()) await box.check();
+  }
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.waitForURL((url) => !url.pathname.startsWith("/legal/accept"), { timeout: 20_000 });
 }
 
 export async function logOut(page: Page) {
