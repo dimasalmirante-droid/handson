@@ -13,7 +13,7 @@ Student-first early-career talent platform for Mozambique. This repository conta
 | 5 | Student dashboard | Done |
 | 6 | Document management | Done |
 | 7 | Admin portal | Done |
-| 8 | Testing and deployment | Not started |
+| 8 | Testing and deployment readiness | Done — see [docs/go-live.md](docs/go-live.md) |
 
 
 ## Stack
@@ -43,7 +43,8 @@ Open http://localhost:3000.
 | `npm start` | Serve the production build |
 | `npm run lint` | Lint |
 | `npm test` | All tests (Vitest) |
-| `npm run test:db` | Database tests: migrations, RLS, consent, completion (in-memory Postgres) |
+| `npm run test:db` | Database tests: migrations, RLS, consent, completion, admin, storage (in-memory Postgres) |
+| `npm run test:e2e` | End-to-end tests (Playwright). See Testing below |
 
 ## Project structure
 
@@ -105,6 +106,7 @@ SQL migrations live in `supabase/migrations/`. Apply each new file in order, eit
 | `20261109000200_core_schema.sql` | Student records, catalogues, consent, admin roles, audit log, RLS, completion function |
 | `20261109000300_reference_data.sql` | Mozambique reference data (EN + PT) |
 | `20261109000400_storage.sql` | Private `documents` and `avatars` buckets with own-folder access policies |
+| `20261109000600_maintenance.sql` | Orphaned-file listing and safe removal for super admins |
 | `20261109000500_admin.sql` | Admin search, statistics, verification, account and role functions; suspended accounts cannot write |
 
 ## Database schema
@@ -196,8 +198,20 @@ select id, 'super_admin', 'Initial administrator' from auth.users where email = 
 2. Create an API key with sending access.
 3. Supabase SMTP settings: host `smtp.resend.com`, port `465`, username `resend`, password = the API key, sender email `hello@handson.cloud`, sender name `Handson`.
 
+## Testing
+
+| Suite | Command | What it covers |
+|---|---|---|
+| Unit | `npm test` | Validation (auth, every onboarding step), phone numbers, file-type checks, CSV safety, redirect safety |
+| Database | `npm run test:db` | Applies all migrations to in-memory Postgres; RLS isolation between students, protected columns, consent, admin roles, suspension, audit log, storage folders, completion scoring |
+| End-to-end | `npm run test:e2e` | Public pages, server-side validation, access control, security headers and CSP, mobile layout; student journey (autosave and resume, upload and private download, content-type rejection, privacy consent) and admin journey (search, profile, CSV) when test accounts are set |
+
+End-to-end tests build and start the app on port 3100 unless `E2E_BASE_URL` is set. Student and admin journeys need `E2E_STUDENT_EMAIL`, `E2E_STUDENT_PASSWORD`, `E2E_ADMIN_EMAIL`, `E2E_ADMIN_PASSWORD` for dedicated test accounts.
+
+GitHub Actions (`.github/workflows/ci.yml`) runs lint, type-check, unit and database tests, a production build and the end-to-end suite on every push to `main`.
+
 ## Deployment
 
 Deployed on Vercel from the `main` branch; `app.handson.cloud` points to Vercel via a CNAME in Hostinger.
 
-Vercel environment variables (Production and Preview): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_APP_URL` (`https://app.handson.cloud`). Full go-live checklist in Phase 8.
+Vercel environment variables (Production and Preview): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_APP_URL` (`https://app.handson.cloud`). Go-live checklist: [docs/go-live.md](docs/go-live.md).
