@@ -48,6 +48,7 @@ async function context() {
 
 function refresh() {
   revalidatePath("/onboarding", "layout");
+  revalidatePath("/dashboard", "layout");
 }
 
 /** Record progress so the student resumes at the furthest step reached. */

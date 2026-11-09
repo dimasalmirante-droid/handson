@@ -181,6 +181,42 @@ export const getCompletion = cache(async (userId: string): Promise<Completion | 
   return data as Completion | null;
 });
 
+export type Notification = { id: string; type: string; title: string; body: string | null; link: string | null; read_at: string | null; created_at: string };
+
+export const getNotifications = cache(async (userId: string, limit = 5): Promise<Notification[]> => {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("notifications")
+    .select("id, type, title, body, link, read_at, created_at")
+    .eq("profile_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  return (data ?? []) as Notification[];
+});
+
+export type ConsentRecord = { id: string; consent_type: string; granted: boolean; version: string; source: string; created_at: string };
+
+export const getConsentHistory = cache(async (userId: string): Promise<ConsentRecord[]> => {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("consent_records")
+    .select("id, consent_type, granted, version, source, created_at")
+    .eq("profile_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(50);
+  return (data ?? []) as ConsentRecord[];
+});
+
+/** Where each completion section is edited on the dashboard. */
+export const SECTION_DASHBOARD_HREF: Record<string, string> = {
+  personal: "/dashboard/profile",
+  interests: "/dashboard/profile#interests",
+  education: "/dashboard/education",
+  skills: "/dashboard/skills",
+  experience: "/dashboard/experience",
+  documents: "/dashboard/documents",
+};
+
 /** Human-readable labels for the `missing` codes returned by profile_completion(). */
 export const MISSING_LABELS: Record<string, string> = {
   first_name: "First name",

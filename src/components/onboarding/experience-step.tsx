@@ -29,7 +29,7 @@ function toValues(r: ExperienceRecord): Values {
   };
 }
 
-export function ExperienceStep({ userId, records }: { userId: string; records: ExperienceRecord[] }) {
+export function ExperienceStep({ userId, records, embedded = false }: { userId: string; records: ExperienceRecord[]; embedded?: boolean }) {
   const router = useRouter();
   const [editing, setEditing] = useState<Values | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -96,6 +96,11 @@ export function ExperienceStep({ userId, records }: { userId: string; records: E
         )
       )}
 
+      {embedded ? (
+
+        null
+
+      ) : (
       <StepFooter
         back="/onboarding/interests"
         note={
@@ -105,6 +110,8 @@ export function ExperienceStep({ userId, records }: { userId: string; records: E
         }
         onContinue={() => continueFrom(5)}
       />
+
+      )}
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { savePersonal } from "@/app/(app)/onboarding/actions";
-import { StepFooter, useAutosave } from "@/components/onboarding/wizard";
+import { EmbeddedSave, StepFooter, useAutosave } from "@/components/onboarding/wizard";
 import { Field, Input, Select, describedBy } from "@/components/ui/field";
 import { DIAL_CODES } from "@/lib/countries";
 import type { FieldErrors } from "@/lib/validation/profile";
@@ -22,7 +22,9 @@ export function PersonalForm({
   countries,
   provinces,
   photo,
+  embedded = false,
 }: {
+  embedded?: boolean;
   photo: ReactNode;
   initial: Values;
   countries: { priority: CountryOption[]; rest: CountryOption[] };
@@ -161,6 +163,19 @@ export function PersonalForm({
         {text("linkedinUrl", "LinkedIn profile", { type: "url", placeholder: "linkedin.com/in/your-name", hint: "Optional" })}
       </div>
 
+      {embedded ? (
+
+        <EmbeddedSave
+    status={autosave.status}
+    onSave={async () => {
+      await autosave.flush();
+      const r = await savePersonal(values, "continue");
+      setFields(r.ok ? {} : r.fields ?? {});
+      return r.ok;
+    }}
+  />
+
+      ) : (
       <StepFooter
         back={null}
         status={autosave.status}
@@ -171,6 +186,8 @@ export function PersonalForm({
           return r;
         }}
       />
+
+      )}
     </form>
   );
 }

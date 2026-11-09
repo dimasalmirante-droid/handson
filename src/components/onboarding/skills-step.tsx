@@ -22,7 +22,9 @@ export function SkillsStep({
   mine,
   skills,
   categories,
+  embedded = false,
 }: {
+  embedded?: boolean;
   mine: StudentSkill[];
   skills: Skill[];
   categories: SkillCategory[];
@@ -150,7 +152,7 @@ export function SkillsStep({
         )}
       </section>
 
-      <StepFooter back="/onboarding/education" onContinue={() => continueFrom(3)} />
+      {!embedded && <StepFooter back="/onboarding/education" onContinue={() => continueFrom(3)} />}
     </div>
   );
 }

@@ -202,6 +202,31 @@ export function StepFooter({
   );
 }
 
+/** Save bar for forms shown on the dashboard: autosave status plus an explicit check. */
+export function EmbeddedSave({ status, onSave }: { status: SaveStatus; onSave: () => Promise<boolean> }) {
+  const [pending, start] = useTransition();
+  const [checked, setChecked] = useState<"ok" | "error" | null>(null);
+  return (
+    <div className="mt-10 flex flex-col-reverse gap-3 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between">
+      <div aria-live="polite">
+        {checked === "error" ? (
+          <p className="text-sm font-medium text-danger">Some required fields need attention.</p>
+        ) : checked === "ok" ? (
+          <p className="text-sm text-ink-muted"><span aria-hidden className="mr-1 text-success">✓</span>Saved. All required fields are complete.</p>
+        ) : (
+          <SaveIndicator status={status} />
+        )}
+      </div>
+      <Button
+        loading={pending}
+        onClick={() => start(async () => setChecked((await onSave()) ? "ok" : "error"))}
+      >
+        Save changes
+      </Button>
+    </div>
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /* Choice controls                                                     */
 /* ------------------------------------------------------------------ */

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { saveLinks } from "@/app/(app)/onboarding/actions";
-import { StepFooter, useAutosave } from "@/components/onboarding/wizard";
+import { SaveIndicator, StepFooter, useAutosave } from "@/components/onboarding/wizard";
 import { DocumentManager } from "@/components/files/document-manager";
 import { Field, Input, describedBy } from "@/components/ui/field";
 import type { DocumentRecord } from "@/lib/data/student";
@@ -10,7 +10,7 @@ import type { FieldErrors } from "@/lib/validation/profile";
 
 type Values = Record<string, string>;
 
-export function DocumentsStep({ initial, documents }: { initial: Values; documents: DocumentRecord[] }) {
+export function DocumentsStep({ initial, documents, embedded = false }: { initial: Values; documents: DocumentRecord[]; embedded?: boolean }) {
   const [values, setValues] = useState<Values>(initial);
   const [fields, setFields] = useState<FieldErrors>({});
   const autosave = useAutosave((v: Values) => saveLinks(v, "draft"));
@@ -58,6 +58,11 @@ export function DocumentsStep({ initial, documents }: { initial: Values; documen
         </div>
       </section>
 
+      {embedded ? (
+
+        <div className="mt-6"><SaveIndicator status={autosave.status} /></div>
+
+      ) : (
       <StepFooter
         back="/onboarding/experience"
         status={autosave.status}
@@ -69,6 +74,8 @@ export function DocumentsStep({ initial, documents }: { initial: Values; documen
           return r;
         }}
       />
+
+      )}
     </div>
   );
 }

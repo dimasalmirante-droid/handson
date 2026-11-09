@@ -38,7 +38,9 @@ export function EducationStep({
   userId,
   records,
   catalogues,
+  embedded = false,
 }: {
+  embedded?: boolean;
   userId: string;
   records: EducationRecord[];
   catalogues: Pick<Catalogues, "institutions" | "qualificationTypes" | "fieldsOfStudy">;
@@ -128,6 +130,11 @@ export function EducationStep({
         )
       )}
 
+      {embedded ? (
+
+        null
+
+      ) : (
       <StepFooter
         back="/onboarding/personal"
         note={
@@ -137,6 +144,8 @@ export function EducationStep({
         }
         onContinue={() => continueFrom(2)}
       />
+
+      )}
     </div>
   );
 }

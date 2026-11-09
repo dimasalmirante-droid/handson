@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { continueFrom, saveInterests } from "@/app/(app)/onboarding/actions";
-import { ChipGroup, RadioCards, StepFooter, useAutosave } from "@/components/onboarding/wizard";
+import { ChipGroup, RadioCards, SaveIndicator, StepFooter, useAutosave } from "@/components/onboarding/wizard";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Textarea } from "@/components/ui/field";
 import type { Option } from "@/lib/data/catalogues";
@@ -59,7 +59,9 @@ export function InterestsStep({
   industries,
   jobFunctions,
   provinces,
+  embedded = false,
 }: {
+  embedded?: boolean;
   initial: Interests | null;
   industries: Option[];
   jobFunctions: Option[];
@@ -213,6 +215,11 @@ export function InterestsStep({
         />
       </Field>
 
+      {embedded ? (
+
+        <SaveIndicator status={autosave.status} />
+
+      ) : (
       <StepFooter
         back="/onboarding/skills"
         status={autosave.status}
@@ -222,6 +229,8 @@ export function InterestsStep({
           return continueFrom(4);
         }}
       />
+
+      )}
     </div>
   );
 }

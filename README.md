@@ -10,7 +10,7 @@ Student-first early-career talent platform for Mozambique. This repository conta
 | 2 | Authentication (Google, email/password) | Done |
 | 3 | Database, Row Level Security | Done |
 | 4 | Six-step student onboarding | Done |
-| 5 | Student dashboard | Not started |
+| 5 | Student dashboard | Done |
 | 6 | Document management | Done |
 | 7 | Admin portal | Not started |
 | 8 | Testing and deployment | Not started |
@@ -162,6 +162,7 @@ select id, 'super_admin', 'Initial administrator' from auth.users where email = 
 3. **Authentication → Emails → Templates** (links use `token_hash` so they work on any device):
    - Confirm signup, link: `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email`
    - Reset password, link: `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery`
+   - Change email address, link: `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email_change&next=/dashboard/settings`
 4. **Authentication → Sign In / Providers → Google**: enable, paste the Google Client ID and Client Secret.
 5. **Authentication → Emails → SMTP Settings**: custom SMTP (see below). The built-in sender is rate-limited and not for production.
 

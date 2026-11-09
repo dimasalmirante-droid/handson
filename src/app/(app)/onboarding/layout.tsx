@@ -22,7 +22,7 @@ export default async function OnboardingLayout({ children }: { children: ReactNo
 
   return (
     <AppShell email={user.email}>
-      <div className="mx-auto max-w-4xl">
+      <div className="mx-auto min-w-0 max-w-4xl">
         <div className="mb-8 flex flex-col gap-6">
           <Progress value={completion?.total ?? 0} label="Profile completion" />
           <WizardStepper completeSteps={completeSteps} />
