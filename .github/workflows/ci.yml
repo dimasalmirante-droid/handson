@@ -6,6 +6,10 @@ on:
   pull_request:
   workflow_dispatch:
 
+# The Supabase URL and publishable key are public by design (sent to every
+# browser; access is enforced by Row Level Security). Override with
+# repository variables if the project changes.
+
 permissions:
   contents: read
 
@@ -30,8 +34,8 @@ jobs:
       - run: npm test
       - run: npm run build
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL || 'https://mcqrcwlvvdbhpmfretdu.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_SE85ObRlSdqUvRI1gZa2zA_PXUqhohG' }}
 
   e2e:
     name: End-to-end tests
@@ -39,8 +43,8 @@ jobs:
     needs: checks
     timeout-minutes: 20
     env:
-      NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL || 'https://mcqrcwlvvdbhpmfretdu.supabase.co' }}
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_SE85ObRlSdqUvRI1gZa2zA_PXUqhohG' }}
       # Optional: set E2E_BASE_URL (repository variable) to test a deployed site instead of a local build.
       E2E_BASE_URL: ${{ vars.E2E_BASE_URL }}
       # Optional: dedicated test accounts (repository secrets). Their journeys are skipped when absent.
