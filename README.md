@@ -106,8 +106,8 @@ SQL migrations live in `supabase/migrations/`. Apply each new file in order, eit
 | `20261109000200_core_schema.sql` | Student records, catalogues, consent, admin roles, audit log, RLS, completion function |
 | `20261109000300_reference_data.sql` | Mozambique reference data (EN + PT) |
 | `20261109000400_storage.sql` | Private `documents` and `avatars` buckets with own-folder access policies |
-| `20261109000600_maintenance.sql` | Orphaned-file listing and safe removal for super admins |
 | `20261109000500_admin.sql` | Admin search, statistics, verification, account and role functions; suspended accounts cannot write |
+| `20261109000600_maintenance.sql` | Orphaned-file listing and safe removal for super admins |
 
 ## Database schema
 
