@@ -21,7 +21,10 @@ export type FormState = {
   success?: string;
 };
 
-const GENERIC_ERROR = "Something went wrong. Please try again in a moment.";
+/** Bump when the Terms or Privacy Policy change materially. */
+const TERMS_VERSION = "draft-2026-11";
+
+const GENERIC_ERROR ="Something went wrong. Please try again in a moment.";
 
 function pick(formData: FormData, keys: string[]) {
   return Object.fromEntries(keys.map((k) => [k, String(formData.get(k) ?? "")]));
@@ -46,7 +49,8 @@ export async function registerAction(_prev: FormState, formData: FormData): Prom
     password,
     options: {
       emailRedirectTo: `${origin}/auth/confirm?next=/onboarding`,
-      data: { first_name: firstName, surname },
+      // terms_version is recorded as Terms and Privacy consent by the sign-up trigger.
+      data: { first_name: firstName, surname, terms_version: TERMS_VERSION },
     },
   });
 

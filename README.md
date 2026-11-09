@@ -7,8 +7,8 @@ Student-first early-career talent platform for Mozambique. This repository conta
 | Phase | Scope | Status |
 |---|---|---|
 | 1 | Foundation and design system | Done |
-| 2 | Authentication (Google, email/password) | Built; awaiting Supabase, Google and SMTP configuration |
-| 3 | Database, Row Level Security | Not started |
+| 2 | Authentication (Google, email/password) | Done |
+| 3 | Database, Row Level Security | Done (migrations to apply) |
 | 4 | Six-step student onboarding | Not started |
 | 5 | Student dashboard | Not started |
 | 6 | Document management | Not started |
@@ -42,7 +42,8 @@ Open http://localhost:3000.
 | `npm run build` | Production build |
 | `npm start` | Serve the production build |
 | `npm run lint` | Lint |
-| `npm test` | Unit tests (Vitest) |
+| `npm test` | All tests (Vitest) |
+| `npm run test:db` | Database tests: migrations, RLS, consent, completion (in-memory Postgres) |
 
 ## Project structure
 
@@ -100,7 +101,48 @@ SQL migrations live in `supabase/migrations/`. Apply each new file in order, eit
 
 | Migration | Contents |
 |---|---|
-| `20261109000100_profiles.sql` | `profiles` table, auto-creation on sign-up, own-row RLS, column-level update grants |
+| `20261109000100_profiles.sql` | `profiles` table, auto-creation on sign-up, own-row RLS |
+| `20261109000200_core_schema.sql` | Student records, catalogues, consent, admin roles, audit log, RLS, completion function |
+| `20261109000300_reference_data.sql` | Mozambique reference data (EN + PT) |
+
+## Database schema
+
+| Group | Tables |
+|---|---|
+| Student | `profiles`, `education_records`, `student_skills`, `professional_interests` (+ `interest_industries`, `interest_job_functions`, `interest_locations`), `experiences`, `documents`, `notifications`, `consent_records` |
+| Reference | `provinces`, `institutions`, `qualification_types`, `fields_of_study`, `skill_categories`, `skill_catalogue`, `industries`, `job_functions` |
+| Administration | `administrator_roles`, `audit_logs` |
+
+Every table has Row Level Security:
+- Students read and write only rows where `profile_id = auth.uid()`; anonymous visitors have no access.
+- Verification, account status and employer visibility cannot be written by students (column-level grants). Visibility changes only through `set_employer_visibility()`, which appends to `consent_records`.
+- Administrators (`reviewer` < `admin` < `super_admin`) are identified from `administrator_roles` by `has_admin_role()` / `is_admin()`. Admins can read student data; only super admins can read `audit_logs`. Role changes are audited automatically; other actions via `log_admin_action()`.
+- Consent records and audit logs are append-only.
+- Editing a verified education record or document resets it to `unverified`.
+- Row limits per student guard against abuse (10 education, 50 skills, 30 experiences, 30 documents).
+- Document `storage_path` must start with the owner's user ID (`<uid>/…`), matching the private storage layout in Phase 6.
+
+### Profile completion
+
+`profile_completion(profile_id)` returns the total and a per-section breakdown with missing items. It runs with the caller's permissions, so students see only their own score.
+
+| Section | Weight | Rule |
+|---|---|---|
+| Personal information | 15% | Proportional: first name, surname, date of birth, nationality, province (Mozambique), city, phone |
+| Academic background | 20% | At least one education record |
+| Skills | 15% | Proportional up to 3 skills |
+| Professional interests | 15% | Proportional: industries, job functions, work arrangements, availability, preferred locations |
+| Experience | 15% | At least one record (internship, volunteering, project, activity, job) |
+| Documents and portfolio | 20% | CV 10%, academic transcript 10% |
+
+### First administrator
+
+Run once in the SQL Editor after the person has signed up (replace the email):
+
+```sql
+insert into public.administrator_roles (user_id, role, note)
+select id, 'super_admin', 'Initial administrator' from auth.users where email = 'you@example.com';
+```
 
 ### Supabase dashboard settings
 
