@@ -48,6 +48,11 @@ check "history records every migration" "$(history_count)" "$TOTAL"
 run ok   "verify after apply" ACTION=verify
 run ok   "apply again does nothing" ACTION=apply CONFIRM=staging
 
+echo "Reference database setup"
+run ok   "reference is built with the migrations copied in (CLI init creates no migrations folder)" ACTION=verify
+run fail "a CLI config without major_version stops the run" ACTION=verify SELFTEST_INIT_WITHOUT_MAJOR=1
+check "history unchanged by the failed run" "$(history_count)" "$TOTAL"
+
 echo "Production-like database (six migrations run in the SQL Editor, no history)"
 new_target; apply_manually "$BASELINE"
 psql "$BASE/target" -X -q -c "insert into auth.users (id, email, email_confirmed_at, raw_user_meta_data) values ('00000000-0000-4000-8000-000000000001', 'a@example.com', now(), '{\"terms_version\":\"draft-2026-11\"}')"

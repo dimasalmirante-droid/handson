@@ -105,8 +105,16 @@ build_reference() {
   (cd "$dir" 2>/dev/null && "$SUPABASE" stop --no-backup >/dev/null 2>&1) || true
   rm -rf "$dir" && mkdir -p "$dir"
   (cd "$dir" && "$SUPABASE" init --force >/dev/null)
-  sed -i -E "s/^major_version = [0-9]+/major_version = ${MAJOR}/" "$dir/supabase/config.toml"
+  # The CLI's init creates supabase/config.toml but not supabase/migrations/.
+  mkdir -p "$dir/supabase/migrations"
+  # The reference must use the same Postgres major version as the target.
+  grep -qE '^major_version = [0-9]+$' "$dir/supabase/config.toml" \
+    || fail "Unexpected Supabase CLI config: no major_version setting. Nothing was changed by this step."
+  sed -i -E "s/^major_version = [0-9]+$/major_version = ${MAJOR}/" "$dir/supabase/config.toml"
   for v in "$@"; do cp "$(file_for "$v")" "$dir/supabase/migrations/"; done
+  local copied
+  copied="$(find "$dir/supabase/migrations" -maxdepth 1 -name '*.sql' | wc -l | tr -d ' ')"
+  [[ "$copied" == "$#" ]] || fail "Reference database setup copied $copied of $# migration file(s)."
   (cd "$dir" && "$SUPABASE" start -x realtime,studio,imgproxy,edge-runtime,logflare,vector,postgres-meta,supavisor >/dev/null)
 }
 
