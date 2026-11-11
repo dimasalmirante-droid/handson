@@ -68,7 +68,9 @@ with lines(line) as (
          || '|returns=' || pg_get_function_result(p.oid)
          || '|definer=' || p.prosecdef || '|volatile=' || p.provolatile::text
          || '|config=' || coalesce(array_to_string(p.proconfig, ','), '')
-         || '|body=' || md5(p.prosrc)
+         -- Line endings are normalised (CRLF/CR → LF): SQL pasted from Windows
+         -- stores CRLF bodies that are otherwise identical.
+         || '|body=' || md5(replace(replace(p.prosrc, E'\r\n', E'\n'), E'\r', E'\n'))
   from pg_proc p
   where p.pronamespace = 'public'::regnamespace and p.prokind in ('f', 'p')
     and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')

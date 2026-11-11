@@ -19,11 +19,19 @@ new_target() {
   psql "$ADMIN_URL" -X -q -c "drop database if exists target" -c "create database target"
   psql "$BASE/target" -X -q -v ON_ERROR_STOP=1 -f "$HERE/supabase-stubs.sql"
 }
-apply_manually() { # versions up to $1, the way the SQL Editor did (no history)
+apply_manually() { # versions up to $1, the way the SQL Editor did (no history); $2 = crlf to use Windows line endings
   for f in $(ls "$ROOT"/supabase/migrations/*.sql | sort); do
     v="$(basename "$f" | cut -c1-14)"; [[ "$v" > "$1" ]] && break
-    psql "$BASE/target" -X -q -v ON_ERROR_STOP=1 --single-transaction -f "$f" >/dev/null
+    if [[ "${2:-}" == "crlf" ]]; then
+      sed 's/$/\r/' "$f" > "$TMP/crlf.sql"
+      psql "$BASE/target" -X -q -v ON_ERROR_STOP=1 --single-transaction -f "$TMP/crlf.sql" >/dev/null
+    else
+      psql "$BASE/target" -X -q -v ON_ERROR_STOP=1 --single-transaction -f "$f" >/dev/null
+    fi
   done
+}
+fingerprint() { # body fingerprint of public.$1 as reported by the catalogue
+  psql "$BASE/target" -X -q -At -f "$ROOT/supabase/ops/catalogue.sql" | grep "^function|$1(" | sed -E 's/.*\|body=//'
 }
 run() { # expect(ok|fail) label env...
   local expect="$1" label="$2"; shift 2
@@ -69,6 +77,22 @@ check "history records every migration" "$(history_count)" "$TOTAL"
 if [[ "$(psql "$BASE/target" -X -At -c "select to_regclass('public.accounts') is not null")" == "t" ]]; then
   check "existing account received an accounts record" "$(psql "$BASE/target" -X -At -c "select count(*) from public.accounts")" "1"
 fi
+
+echo "Windows line endings (migrations pasted with CRLF, as in production)"
+new_target; apply_manually "$BASELINE" crlf
+check "function bodies are stored with CRLF" "$(psql "$BASE/target" -X -At -c "select bool_or(prosrc like E'%\r\n%') from pg_proc where pronamespace = 'public'::regnamespace")" "t"
+run ok   "verify matches the LF reference" ACTION=verify BASELINE="$BASELINE"
+psql "$BASE/target" -X -q -c "create function public.selftest_lf() returns int language sql as \$\$ select 1;
+select 2 \$\$" -c "create function public.selftest_crlf() returns int language sql as \$\$ select 1;$(printf '\r')
+select 2 \$\$" -c "create function public.selftest_cr() returns int language sql as \$\$ select 1;$(printf '\r')select 2 \$\$" -c "create function public.selftest_other() returns int language sql as \$\$ select 1;
+select 3 \$\$"
+lf="$(fingerprint selftest_lf)"
+check "LF and CRLF bodies have the same fingerprint" "$(fingerprint selftest_crlf)" "$lf"
+check "LF and CR bodies have the same fingerprint" "$(fingerprint selftest_cr)" "$lf"
+if [[ -n "$lf" && "$(fingerprint selftest_other)" != "$lf" ]]; then check "different bodies have different fingerprints" ok ok; else check "different bodies have different fingerprints" same different; fi
+psql "$BASE/target" -X -q -c "drop function public.selftest_lf(), public.selftest_crlf(), public.selftest_cr(), public.selftest_other()"
+psql "$BASE/target" -X -q -c "create or replace function public.is_admin() returns boolean language sql stable security definer set search_path = '' as \$\$ select true \$\$"
+run fail "verify still detects a genuinely changed function" ACTION=verify BASELINE="$BASELINE"
 
 echo "Drift and inconsistent history are refused"
 new_target; apply_manually "$BASELINE"
