@@ -41,9 +41,10 @@ run() { # expect(ok|fail) label env...
   else
     failed=$((failed + 1)); echo "  ✗ $label (exit $rc)"; echo "$out" | tail -20; tail -30 "$TMP/summary.md"
   fi
-  : > "$TMP/summary.md"
+  cp "$TMP/summary.md" "$TMP/last-summary.md"; : > "$TMP/summary.md"
 }
 history_count() { psql "$BASE/target" -X -At -c "select count(*) from supabase_migrations.schema_migrations" 2>/dev/null || echo 0; }
+said() { if grep -qF -- "$2" "$TMP/last-summary.md"; then check "$1" yes yes; else check "$1" no yes; fi; }
 check() { if [[ "$2" == "$3" ]]; then pass=$((pass + 1)); echo "  ✓ $1"; else failed=$((failed + 1)); echo "  ✗ $1: expected '$3', got '$2'"; fi; }
 TOTAL="$(ls "$ROOT"/supabase/migrations/*.sql | wc -l | tr -d ' ')"
 
@@ -121,6 +122,70 @@ psql "$BASE/target" -X -q -c "drop function public.st_lf(), public.st_crlf(), pu
 psql "$BASE/target" -X -q -c "create or replace function public.is_admin() returns boolean language sql stable security definer set search_path = '' as \$\$ select true \$\$"
 run fail "verify still detects a genuinely changed function" ACTION=verify BASELINE="$BASELINE"
 check "the changed function is reported" "$(grep -cE '^[-+]function\|is_admin\(' "$TMP/handson-db/reports/before.diff")" "2"
+
+echo "Accepted differences (production-like database at baseline 20261109000500)"
+B5="20261109000500"
+REAL="$ROOT/supabase/ops/accepted-differences.json"
+variant() { jq "$2" "$REAL" > "$TMP/accepted-$1.json"; echo "$TMP/accepted-$1.json"; }
+EMPTY="$TMP/accepted-empty.json"; echo '{"version": 1, "entries": []}' > "$EMPTY"
+prod() { # expect, label, ACTION=…, accepted-differences file, more env…
+  local expect="$1" label="$2" action="$3" file="$4"; shift 4
+  run "$expect" "$label" TARGET=production "$action" ACCEPTED_DIFFERENCES_FILE="$file" "$@"
+}
+new_target; apply_manually "$B5" crlf
+prod fail "without an accepted entry the difference fails" ACTION=verify "$EMPTY" BASELINE="$B5"
+prod ok   "the exact approved difference passes" ACTION=verify "$REAL" BASELINE="$B5"
+said      "it is reported as an accepted difference" "**Accepted difference** (before, from migration \`$B5\`)"
+said      "the result says it is not identical" "identical apart from 1 accepted difference(s)"
+prod fail "a different function-body hash fails" ACTION=verify "$(variant hash '.entries[0].found |= sub("body=[0-9a-f]+$"; "body=00000000000000000000000000000000")')" BASELINE="$B5"
+said      "the mismatched entry is reported as stale" "**Stale accepted difference**"
+prod fail "an entry for another target is not used" ACTION=verify "$(variant staging '.entries[0].target = "staging"')" BASELINE="$B5"
+prod fail "an entry scoped to a later migration is not used" ACTION=verify "$(variant later '.entries[0].applies_from_baseline = "20261109000600"')" BASELINE="$B5"
+said      "unused entries are reported" "Accepted differences not used in this comparison"
+for bad in \
+  'unknown-version|.entries[0].applies_from_baseline = "20261109000550"' \
+  'missing-reason|del(.entries[0].reason)' \
+  'short-reason|.entries[0].reason = "CRLF"' \
+  'missing-approval|del(.entries[0].approved)' \
+  'extra-field|.entries[0].note = "x"' \
+  'bad-target|.entries[0].target = "prod"' \
+  'identical|.entries[0].found = .entries[0].expected' \
+  'other-object|.entries[0].found |= sub("admin_set_record_verification"; "admin_set_role")' \
+  'multi-line|.entries[0].found += "\n+function|x()|body=1"' \
+  'data-line|.entries[0].expected = "data|provinces|rows=11|fingerprint=x"' \
+  'duplicate|.entries += [.entries[0]]' \
+  'wrong-version|.version = 2'; do
+  prod fail "malformed entry fails: ${bad%%|*}" ACTION=verify "$(variant "${bad%%|*}" "${bad#*|}")" BASELINE="$B5"
+  said "malformed file reported: ${bad%%|*}" "accepted differences file is malformed"
+done
+printf '{"version": 1, "entries": [' > "$TMP/accepted-invalid.json"
+prod fail "an invalid JSON file fails" ACTION=verify "$TMP/accepted-invalid.json" BASELINE="$B5"
+prod fail "repair-history without the accepted entry fails" ACTION=repair-history "$EMPTY" CONFIRM=production BASELINE="$B5"
+check "history unchanged" "$(history_count)" "0"
+prod fail "repair-history with a malformed file fails" ACTION=repair-history "$TMP/accepted-identical.json" CONFIRM=production BASELINE="$B5"
+check "history unchanged" "$(history_count)" "0"
+prod ok   "repair-history with only the accepted difference" ACTION=repair-history "$REAL" CONFIRM=production BASELINE="$B5"
+check "history records the five migrations" "$(history_count)" "5"
+prod ok   "plan uses the accepted difference" ACTION=plan "$REAL"
+prod ok   "apply: the final verification against every migration still uses it" ACTION=apply "$REAL" CONFIRM=production
+said      "the final verification reports it" "**Accepted difference** (after, from migration \`$B5\`)"
+check "history records every migration" "$(history_count)" "$TOTAL"
+
+new_target; apply_manually "$B5" crlf
+psql "$BASE/target" -X -q -c 'drop policy "Admins read consent history" on public.consent_records'
+prod fail "an additional unrelated difference fails" ACTION=verify "$REAL" BASELINE="$B5"
+said      "the accepted difference is still reported" "**Accepted difference**"
+prod fail "repair-history with an additional difference fails" ACTION=repair-history "$REAL" CONFIRM=production BASELINE="$B5"
+check "history unchanged" "$(history_count)" "0"
+
+new_target; apply_manually "$B5" crlf
+psql "$BASE/target" -X -q -c "create or replace function public.admin_set_record_verification(p_table text, p_id uuid, p_status public.verification_status, p_note text default null) returns void language plpgsql security definer set search_path = '' as \$\$ begin null; end \$\$"
+prod fail "a changed production fingerprint fails" ACTION=verify "$REAL" BASELINE="$B5"
+said      "the entry is reported as stale" "**Stale accepted difference**"
+
+new_target; apply_manually "$B5"
+prod fail "a stale entry fails when the difference no longer exists" ACTION=verify "$REAL" BASELINE="$B5"
+said      "the stale entry is named" "Remove or update the entry"
 
 echo "Drift and inconsistent history are refused"
 new_target; apply_manually "$BASELINE"

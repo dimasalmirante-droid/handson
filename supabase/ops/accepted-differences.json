@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "about": "Reviewed differences between a database and the reference built from the migrations, which verification accepts and always reports. Each entry is pinned to exact catalogue lines (supabase/ops/catalogue.sql): any other difference, a changed fingerprint, or an entry whose difference no longer exists makes verification fail. Change this file only through a reviewed pull request.",
+  "entries": [
+    {
+      "target": "production",
+      "applies_from_baseline": "20261109000500",
+      "expected": "function|admin_set_record_verification(p_table text, p_id uuid, p_status verification_status, p_note text)|returns=void|definer=true|volatile=v|config=search_path=\"\"|body=f0064c9b3c14a8438ba656e61e4b0b11",
+      "found": "function|admin_set_record_verification(p_table text, p_id uuid, p_status verification_status, p_note text)|returns=void|definer=true|volatile=v|config=search_path=\"\"|body=6b224985ee04bfc15d3dc35a0aee5690",
+      "reason": "Migration 20261109000500 was run in the SQL Editor from Windows-format text, so this function body is stored with CRLF line endings. Outside string literals that is normalised; inside the multi-line dynamic SQL literal passed to execute format('update public.%I set verification_status = $1, ...') the three line breaks remain CRLF. Postgres treats CR as whitespace when it parses the executed SQL, so the function behaves exactly as the repository version. Confirmed on 2026-11-11: production's raw body fingerprint f9239d98549576c343ba3d93ad8940e2 equals the repository text with every LF replaced by CRLF.",
+      "approved": "Approved by Almirante (Option A, 2026-11-11); to be reviewed in the pull request that adds this file."
+    }
+  ]
+}

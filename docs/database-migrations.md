@@ -22,6 +22,13 @@ How database changes reach staging and production, and how the two are kept apar
 
 The comparison covers tables, columns, constraints, indexes, Row Level Security, policies, functions (signature, security, `search_path`, body fingerprint), who may execute each function, table and column grants, triggers on `auth.users`, enum types and storage buckets (`supabase/ops/catalogue.sql`). Reference data such as catalogue entries is reported but not compared, because administrators may add entries.
 
+### Accepted differences
+`supabase/ops/accepted-differences.json` lists reviewed exceptions: differences between a database and the reference that are known, explained and harmless. Each entry names the target, the migration from which it applies (`applies_from_baseline`), the exact expected and found catalogue lines, the reason and who approved it. Verification uses an entry only for its target and only when the reference includes that migration. It always reports used entries in the summary. It fails on any other difference, on an entry whose exact difference is no longer present (a changed fingerprint, or the difference was fixed), and on a malformed file. Change the file only through a reviewed pull request.
+
+The current entry covers `admin_set_record_verification` in production. Migration `20261109000500` was pasted from Windows-format text, so its multi-line dynamic SQL literal holds CRLF line endings. Behaviour is unaffected.
+
+Function bodies are fingerprinted with Windows line endings (CRLF) treated as LF in code and comments, but never inside string literals or quoted identifiers.
+
 This repository is public, so workflow logs and summaries are public too. They contain only schema structure and row counts, never data or credentials. Full reports are kept as artifacts for staging only.
 
 ## One-time setup
