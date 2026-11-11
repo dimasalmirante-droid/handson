@@ -68,9 +68,18 @@ with lines(line) as (
          || '|returns=' || pg_get_function_result(p.oid)
          || '|definer=' || p.prosecdef || '|volatile=' || p.provolatile::text
          || '|config=' || coalesce(array_to_string(p.proconfig, ','), '')
-         -- Line endings are normalised (CRLF/CR → LF): SQL pasted from Windows
-         -- stores CRLF bodies that are otherwise identical.
-         || '|body=' || md5(replace(replace(p.prosrc, E'\r\n', E'\n'), E'\r', E'\n'))
+         -- Body fingerprint. SQL pasted from Windows stores CRLF line endings,
+         -- so CRLF is treated as LF in the code and comments, but never inside
+         -- string literals or quoted identifiers, where it changes the value.
+         -- The tokens below ('…' with '' escapes, "…", and -- comments) are
+         -- recognised exactly. Bodies containing constructs this does not
+         -- tokenise (inner dollar quotes, block comments, backslashes) are
+         -- fingerprinted byte-for-byte instead: a stricter, never looser, match.
+         || '|body=' || md5(
+              case
+                when p.prosrc ~ $re$\$([A-Za-z_][A-Za-z_0-9]*)?\$|/\*|\\$re$ then p.prosrc
+                else regexp_replace(p.prosrc, $re$('([^']|'')*'|"([^"]|"")*"|--[^\r\n]*)|\r(?=\n)$re$, '\1', 'g')
+              end)
   from pg_proc p
   where p.pronamespace = 'public'::regnamespace and p.prokind in ('f', 'p')
     and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')

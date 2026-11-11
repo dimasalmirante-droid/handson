@@ -81,18 +81,46 @@ fi
 echo "Windows line endings (migrations pasted with CRLF, as in production)"
 new_target; apply_manually "$BASELINE" crlf
 check "function bodies are stored with CRLF" "$(psql "$BASE/target" -X -At -c "select bool_or(prosrc like E'%\r\n%') from pg_proc where pronamespace = 'public'::regnamespace")" "t"
-run ok   "verify matches the LF reference" ACTION=verify BASELINE="$BASELINE"
-psql "$BASE/target" -X -q -c "create function public.selftest_lf() returns int language sql as \$\$ select 1;
-select 2 \$\$" -c "create function public.selftest_crlf() returns int language sql as \$\$ select 1;$(printf '\r')
-select 2 \$\$" -c "create function public.selftest_cr() returns int language sql as \$\$ select 1;$(printf '\r')select 2 \$\$" -c "create function public.selftest_other() returns int language sql as \$\$ select 1;
-select 3 \$\$"
-lf="$(fingerprint selftest_lf)"
-check "LF and CRLF bodies have the same fingerprint" "$(fingerprint selftest_crlf)" "$lf"
-check "LF and CR bodies have the same fingerprint" "$(fingerprint selftest_cr)" "$lf"
-if [[ -n "$lf" && "$(fingerprint selftest_other)" != "$lf" ]]; then check "different bodies have different fingerprints" ok ok; else check "different bodies have different fingerprints" same different; fi
-psql "$BASE/target" -X -q -c "drop function public.selftest_lf(), public.selftest_crlf(), public.selftest_cr(), public.selftest_other()"
+# The only function with a multi-line string literal (dynamic SQL) is reported; nothing else differs.
+run fail "verify reports the CRLF inside a string literal" ACTION=verify BASELINE="$BASELINE"
+check "the only differing function is admin_set_record_verification" \
+  "$(grep -E '^[-+]function\|' "$TMP/handson-db/reports/before.diff" | sed -E 's/^[-+]function\|([a-z_]+)\(.*/\1/' | sort -u | tr '\n' ' ')" \
+  "admin_set_record_verification "
+check "no other kind of object differs" \
+  "$(grep -E '^[-+][a-z_]+\|' "$TMP/handson-db/reports/before.diff" | grep -cvE '^[-+]function\|admin_set_record_verification\(')" "0"
+
+# Fingerprints of individual bodies (CR = \r, LF = \n; $q$ marks the SQL to create).
+create() { # name, body format, literal (\r and \n are expanded in both)
+  psql "$BASE/target" -X -q -v ON_ERROR_STOP=1 -c "create function public.$1() returns text language plpgsql as \$q\$$(printf "$2" "$(printf '%b' "${3:-}")")\$q\$"
+}
+create st_lf          'begin\n  return 1;\nend'
+create st_crlf        'begin\r\n  return 1;\r\nend'
+create st_lit_lf      'begin\n  return %s;\nend' "'a\nb'"
+create st_lit_crlf    'begin\r\n  return %s;\r\nend' "'a\r\nb'"
+create st_lit_lf_crlf 'begin\r\n  return %s;\r\nend' "'a\nb'"
+create st_cmt_lf      "begin\n  -- don't change\n  return %s;\nend" "'a\nb'"
+create st_cmt_crlf    "begin\r\n  -- don't change\r\n  return %s;\r\nend" "'a\r\nb'"
+create st_dq_lf       'begin\n  return %s;\nend' "'x'::\"text\""
+create st_dq_crlf     'begin\r\n  return %s;\r\nend' "'x'::\"text\""
+create st_dollar_lf   'begin\n  return %s;\nend' '$x$a\nb$x$'
+create st_dollar_crlf 'begin\r\n  return %s;\r\nend' '$x$a\nb$x$'
+create st_cr          'begin\r  return 1;\rend'
+create st_other       'begin\n  return 2;\nend'
+f() { fingerprint "$1"; }
+same() { if [[ -n "$(f "$2")" && "$(f "$2")" == "$(f "$3")" ]]; then check "$1" same same; else check "$1" different same; fi; }
+differ() { if [[ -n "$(f "$2")" && "$(f "$2")" != "$(f "$3")" ]]; then check "$1" different different; else check "$1" same different; fi; }
+same   "CRLF line endings in code match LF"                              st_lf st_crlf
+differ "CRLF inside a string literal is a difference"                     st_lit_lf st_lit_crlf
+same   "CRLF in code with an identical literal matches"                   st_lit_lf st_lit_lf_crlf
+differ "an apostrophe in a -- comment does not hide a literal difference" st_cmt_lf st_cmt_crlf
+same   "quoted identifiers are handled"                                   st_dq_lf st_dq_crlf
+differ "bodies with inner dollar quotes are compared byte-for-byte"       st_dollar_lf st_dollar_crlf
+differ "a lone CR is a difference"                                        st_lf st_cr
+differ "different bodies have different fingerprints"                     st_lf st_other
+psql "$BASE/target" -X -q -c "drop function public.st_lf(), public.st_crlf(), public.st_lit_lf(), public.st_lit_crlf(), public.st_lit_lf_crlf(), public.st_cmt_lf(), public.st_cmt_crlf(), public.st_dq_lf(), public.st_dq_crlf(), public.st_dollar_lf(), public.st_dollar_crlf(), public.st_cr(), public.st_other()"
 psql "$BASE/target" -X -q -c "create or replace function public.is_admin() returns boolean language sql stable security definer set search_path = '' as \$\$ select true \$\$"
 run fail "verify still detects a genuinely changed function" ACTION=verify BASELINE="$BASELINE"
+check "the changed function is reported" "$(grep -cE '^[-+]function\|is_admin\(' "$TMP/handson-db/reports/before.diff")" "2"
 
 echo "Drift and inconsistent history are refused"
 new_target; apply_manually "$BASELINE"
