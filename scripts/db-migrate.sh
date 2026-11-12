@@ -22,8 +22,8 @@
 #   BASELINE        Optional version (e.g. 20261109000600); only used while
 #                   the target has no migration history.
 #   CONFIRM         Must equal TARGET for repair-history and apply.
-#   (Tests only: MIGRATIONS_DIR, SUPABASE_BIN, REFERENCE_DB_URL and
-#   ACCEPTED_DIFFERENCES_FILE override the defaults.)
+#   (Tests only: MIGRATIONS_DIR, SUPABASE_BIN, REFERENCE_DB_URL,
+#   ACCEPTED_DIFFERENCES_FILE and CATALOGUE_FILE override the defaults.)
 #
 # Accepted differences (supabase/ops/accepted-differences.json) are reviewed
 # exceptions pinned to exact catalogue lines. An entry is used only for its
@@ -45,7 +45,7 @@ CONFIRM="${CONFIRM:-}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 MIGRATIONS="${MIGRATIONS_DIR:-$ROOT/supabase/migrations}"
 SUPABASE="${SUPABASE_BIN:-supabase}"
-CATALOGUE="$ROOT/supabase/ops/catalogue.sql"
+CATALOGUE="${CATALOGUE_FILE:-$ROOT/supabase/ops/catalogue.sql}"
 ACCEPTED_FILE="${ACCEPTED_DIFFERENCES_FILE:-$ROOT/supabase/ops/accepted-differences.json}"
 WORK="${RUNNER_TEMP:-/tmp}/handson-db"
 REPORTS="$WORK/reports"
@@ -84,7 +84,7 @@ if [[ ! -f "$ACCEPTED_FILE" ]]; then
   echo '{"version": 1, "entries": []}' > "$ACCEPTED_FILE"
 fi
 read -r -d '' VALIDATE_ACCEPTED <<'JQ' || true
-  def fields: ["target", "applies_from_baseline", "expected", "found", "reason", "approved"];
+  def fields: ["target", "applies_from_baseline", "expected", "found", "reason", "approval"];
   # The object a catalogue line describes: its fields up to the first key=value.
   def identity: split("|") | until(length == 0 or (.[-1] | test("=") | not); .[:-1]) | join("|");
   def catalogue_line: type == "string" and test("^[a-z_]+\\|[^\\r\\n]+$") and (startswith("data|") | not);
@@ -103,7 +103,7 @@ read -r -d '' VALIDATE_ACCEPTED <<'JQ' || true
       elif $e.expected == $e.found then "\($n): expected and found are identical"
       elif ($e.expected | identity) != ($e.found | identity) then "\($n): expected and found describe different objects"
       elif ($e.reason | type) != "string" or ($e.reason | length) < 40 then "\($n): reason must explain the difference (at least 40 characters)"
-      elif ($e.approved | type) != "string" or ($e.approved | length) < 10 then "\($n): approved must say who approved it"
+      elif ($e.approval | type) != "string" or ($e.approval | length) < 40 then "\($n): approval must say how the entry is approved (at least 40 characters)"
       else empty end),
     (.entries | group_by([.target, .expected]) | map(select(length > 1))[] | "duplicate entries for \(.[0].target): \(.[0].expected)"),
     (.entries | group_by([.target, .found]) | map(select(length > 1))[] | "duplicate entries for \(.[0].target): \(.[0].found)")
@@ -170,31 +170,40 @@ build_reference() {
   (cd "$dir" && "$SUPABASE" start -x realtime,studio,imgproxy,edge-runtime,logflare,vector,postgres-meta,supavisor >/dev/null)
 }
 
+# Catalogue lines are sorted here in byte order (LC_ALL=C), whatever order the
+# query returns them in; compare() relies on that and checks it.
 run_catalogue() { # $1 = url, $2 = output prefix
-  psql "$1" -X -q -At -v ON_ERROR_STOP=1 -f "$CATALOGUE" | LC_ALL=C sort > "$REPORTS/$2.all.txt"
-  grep -v '^data|' "$REPORTS/$2.all.txt" > "$REPORTS/$2.schema.txt" || true
-  grep '^data|' "$REPORTS/$2.all.txt" > "$REPORTS/$2.data.txt" || true
+  psql "$1" -X -q -At -v ON_ERROR_STOP=1 -f "$CATALOGUE" > "$REPORTS/$2.raw.txt"
+  LC_ALL=C sort "$REPORTS/$2.raw.txt" > "$REPORTS/$2.all.txt"
+  { grep -v '^data|' "$REPORTS/$2.all.txt" || true; } > "$REPORTS/$2.schema.txt"
+  { grep '^data|' "$REPORTS/$2.all.txt" || true; } > "$REPORTS/$2.data.txt"
 }
 
 compare() { # $1 = label, then the reference's migration versions
   local label="$1"; shift
   local ref_last="${*: -1}"
   local removed="$REPORTS/$label.removed" added="$REPORTS/$label.added" tmp="$REPORTS/$label.tmp"
-  LC_ALL=C comm -23 "$REPORTS/reference.schema.txt" "$REPORTS/target.schema.txt" > "$removed"
-  LC_ALL=C comm -13 "$REPORTS/reference.schema.txt" "$REPORTS/target.schema.txt" > "$added"
+  # comm needs both inputs in the same byte order: sort them here (independently
+  # of run_catalogue) and let comm verify it.
+  LC_ALL=C sort -o "$REPORTS/reference.schema.txt" "$REPORTS/reference.schema.txt"
+  LC_ALL=C sort -o "$REPORTS/target.schema.txt" "$REPORTS/target.schema.txt"
+  LC_ALL=C comm --check-order -23 "$REPORTS/reference.schema.txt" "$REPORTS/target.schema.txt" > "$removed" \
+    || fail "Internal error: the schema comparison inputs are not sorted. Nothing was changed."
+  LC_ALL=C comm --check-order -13 "$REPORTS/reference.schema.txt" "$REPORTS/target.schema.txt" > "$added" \
+    || fail "Internal error: the schema comparison inputs are not sorted. Nothing was changed."
 
   # Entries for this target whose migration is part of this reference.
-  local used=0 stale=0 entry expected found from reason approved
+  local used=0 stale=0 entry expected found from reason approval
   while IFS= read -r entry; do
     expected="$(jq -r .expected <<< "$entry")"; found="$(jq -r .found <<< "$entry")"
     from="$(jq -r .applies_from_baseline <<< "$entry")"; reason="$(jq -r .reason <<< "$entry")"
-    approved="$(jq -r .approved <<< "$entry")"
+    approval="$(jq -r .approval <<< "$entry")"
     if grep -Fxq -- "$expected" "$removed" && grep -Fxq -- "$found" "$added"; then
       used=$((used + 1))
       { grep -Fxv -- "$expected" "$removed" || true; } > "$tmp" && mv "$tmp" "$removed"
       { grep -Fxv -- "$found" "$added" || true; } > "$tmp" && mv "$tmp" "$added"
       summary "- **Accepted difference** ($label, from migration \`$from\`): $reason"
-      summary "  - Approved: $approved"
+      summary "  - Approval: $approval"
       summary "  - Expected: \`$expected\`"
       summary "  - Found: \`$found\`"
     else
@@ -238,7 +247,7 @@ verify_against() { # $1 = label, then versions
   build_reference "$@"
   run_catalogue "$LOCAL_DB_URL" reference
   run_catalogue "$TARGET_DB_URL" target
-  if ! diff -q "$REPORTS/reference.data.txt" "$REPORTS/target.data.txt" >/dev/null; then
+  if ! diff -q <(LC_ALL=C sort "$REPORTS/reference.data.txt") <(LC_ALL=C sort "$REPORTS/target.data.txt") >/dev/null; then
     summary "- Reference data differs from the seed (expected when administrators add catalogue entries; not a schema problem)."
   fi
   compare "$label" "$@"

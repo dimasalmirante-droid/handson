@@ -134,7 +134,7 @@ prod() { # expect, label, ACTION=…, accepted-differences file, more env…
 }
 new_target; apply_manually "$B5" crlf
 prod fail "without an accepted entry the difference fails" ACTION=verify "$EMPTY" BASELINE="$B5"
-prod ok   "the exact approved difference passes" ACTION=verify "$REAL" BASELINE="$B5"
+prod ok   "the exact accepted difference passes" ACTION=verify "$REAL" BASELINE="$B5"
 said      "it is reported as an accepted difference" "**Accepted difference** (before, from migration \`$B5\`)"
 said      "the result says it is not identical" "identical apart from 1 accepted difference(s)"
 prod fail "a different function-body hash fails" ACTION=verify "$(variant hash '.entries[0].found |= sub("body=[0-9a-f]+$"; "body=00000000000000000000000000000000")')" BASELINE="$B5"
@@ -146,7 +146,9 @@ for bad in \
   'unknown-version|.entries[0].applies_from_baseline = "20261109000550"' \
   'missing-reason|del(.entries[0].reason)' \
   'short-reason|.entries[0].reason = "CRLF"' \
-  'missing-approval|del(.entries[0].approved)' \
+  'missing-approval|del(.entries[0].approval)' \
+  'short-approval|.entries[0].approval = "yes"' \
+  'old-field-name|.entries[0].approved = .entries[0].approval | del(.entries[0].approval)' \
   'extra-field|.entries[0].note = "x"' \
   'bad-target|.entries[0].target = "prod"' \
   'identical|.entries[0].found = .entries[0].expected' \
@@ -186,6 +188,31 @@ said      "the entry is reported as stale" "**Stale accepted difference**"
 new_target; apply_manually "$B5"
 prod fail "a stale entry fails when the difference no longer exists" ACTION=verify "$REAL" BASELINE="$B5"
 said      "the stale entry is named" "Remove or update the entry"
+
+echo "Comparison does not depend on the catalogue's output order"
+RANDOM_CAT="$TMP/catalogue-random.sql"; REVERSE_CAT="$TMP/catalogue-reverse.sql"
+sed -e 's/order by line collate "C";/order by random();/' -e 's/^order by 1;/order by random();/' "$ROOT/supabase/ops/catalogue.sql" > "$RANDOM_CAT"
+sed -e 's/order by line collate "C";/order by line collate "C" desc;/' -e 's/^order by 1;/order by 1 desc;/' "$ROOT/supabase/ops/catalogue.sql" > "$REVERSE_CAT"
+check "the random-order catalogue really changes the order" "$(grep -c 'order by random()' "$RANDOM_CAT")" "2"
+check "the reverse-order catalogue really changes the order" "$(grep -c ' desc;' "$REVERSE_CAT")" "2"
+unsorted() { if ! LC_ALL=C sort -c "$TMP/handson-db/reports/$1.raw.txt" 2>/dev/null; then check "$2" unsorted unsorted; else check "$2" sorted unsorted; fi; }
+new_target; apply_manually "$B5" crlf
+for cat in "$RANDOM_CAT" "$REVERSE_CAT"; do
+  kind="$(basename "$cat" .sql | sed 's/catalogue-//')"
+  prod ok "$kind order: the accepted difference still passes" ACTION=verify "$REAL" BASELINE="$B5" CATALOGUE_FILE="$cat"
+  unsorted target    "$kind order: the database's catalogue output was unsorted"
+  unsorted reference "$kind order: the reference's catalogue output was unsorted"
+  said "$kind order: it is reported as accepted" "identical apart from 1 accepted difference(s)"
+done
+psql "$BASE/target" -X -q -c 'drop policy "Admins read consent history" on public.consent_records'
+for cat in "$RANDOM_CAT" "$REVERSE_CAT"; do
+  kind="$(basename "$cat" .sql | sed 's/catalogue-//')"
+  prod fail "$kind order: an additional difference still fails" ACTION=verify "$REAL" BASELINE="$B5" CATALOGUE_FILE="$cat"
+  check "$kind order: exactly that difference is reported" \
+    "$(grep -c '' "$TMP/handson-db/reports/before.diff") $(grep -c '^-policy|public.consent_records|Admins read consent history|' "$TMP/handson-db/reports/before.diff")" "1 1"
+done
+new_target; apply_manually "$BASELINE"
+run ok "random order: a matching staging database is identical" ACTION=verify BASELINE="$BASELINE" CATALOGUE_FILE="$RANDOM_CAT"
 
 echo "Drift and inconsistent history are refused"
 new_target; apply_manually "$BASELINE"
