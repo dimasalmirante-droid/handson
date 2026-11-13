@@ -43,7 +43,7 @@ Open http://localhost:3000.
 | `npm start` | Serve the production build |
 | `npm run lint` | Lint |
 | `npm test` | All tests (Vitest) |
-| `npm run test:db` | Database tests: migrations, RLS, consent, completion, admin, storage (in-memory Postgres) |
+| `npm run test:db` | Database tests: migrations, RLS, consent, completion, admin, storage, employer foundation, legal acceptance, backward compatibility (in-memory Postgres) |
 | `npm run test:e2e` | End-to-end tests (Playwright). See Testing below |
 
 ## Project structure
@@ -108,6 +108,10 @@ SQL migrations live in `supabase/migrations/`. They are applied to staging and p
 | `20261109000400_storage.sql` | Private `documents` and `avatars` buckets with own-folder access policies |
 | `20261109000500_admin.sql` | Admin search, statistics, verification, account and role functions; suspended accounts cannot write |
 | `20261109000600_maintenance.sql` | Orphaned-file listing and safe removal for super admins |
+| `20261110000100_consent_user_id.sql` | Module 2 · Consent records keyed on the account (`user_id`); `profile_id` kept for compatibility; deleting a profile keeps consent history |
+| `20261110000200_legal_documents.sql` | Module 2 · Versioned Terms and Privacy Notice; per-document acceptance of the exact current version |
+| `20261110000300_accounts.sql` | Module 2 · One record per account; account-level suspension across all workspaces (mirrored to `profiles.account_status`) |
+| `20261110000400_employer_foundation.sql` | Module 2 · Companies, members, roles, invitations (hashed tokens), workspaces, tenant isolation |
 
 ## Database schema
 
