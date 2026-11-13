@@ -19,7 +19,8 @@ new_target() {
   psql "$ADMIN_URL" -X -q -c "drop database if exists target" -c "create database target"
   psql "$BASE/target" -X -q -v ON_ERROR_STOP=1 -f "$HERE/supabase-stubs.sql"
 }
-apply_manually() { # versions up to $1, the way the SQL Editor did (no history); $2 = crlf to use Windows line endings
+apply_manually() { # versions up to $1, applied without migration history; $2 = crlf stores every line ending as CRLF,
+  # simulating the CRLF line endings observed in the production function body (their origin is not established)
   for f in $(ls "$ROOT"/supabase/migrations/*.sql | sort); do
     v="$(basename "$f" | cut -c1-14)"; [[ "$v" > "$1" ]] && break
     if [[ "${2:-}" == "crlf" ]]; then
@@ -79,7 +80,9 @@ if [[ "$(psql "$BASE/target" -X -At -c "select to_regclass('public.accounts') is
   check "existing account received an accounts record" "$(psql "$BASE/target" -X -At -c "select count(*) from public.accounts")" "1"
 fi
 
-echo "Windows line endings (migrations pasted with CRLF, as in production)"
+# Simulates the CRLF line endings observed in the production body of admin_set_record_verification, including
+# the three line breaks inside its multi-line dynamic SQL literal. How they entered production is not established.
+echo "CRLF line endings (simulating the CRLF observed in the production function body)"
 new_target; apply_manually "$BASELINE" crlf
 check "function bodies are stored with CRLF" "$(psql "$BASE/target" -X -At -c "select bool_or(prosrc like E'%\r\n%') from pg_proc where pronamespace = 'public'::regnamespace")" "t"
 # The only function with a multi-line string literal (dynamic SQL) is reported; nothing else differs.
