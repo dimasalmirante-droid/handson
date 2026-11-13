@@ -22,7 +22,15 @@
 #   BASELINE        Optional version (e.g. 20261109000600); only used while
 #                   the target has no migration history.
 #   CONFIRM         Must equal TARGET for repair-history and apply.
-#   (Tests only: MIGRATIONS_DIR, SUPABASE_BIN, REFERENCE_DB_URL override the defaults.)
+#   (Tests only: MIGRATIONS_DIR, SUPABASE_BIN, REFERENCE_DB_URL,
+#   ACCEPTED_DIFFERENCES_FILE and CATALOGUE_FILE override the defaults.)
+#
+# Accepted differences (supabase/ops/accepted-differences.json) are reviewed
+# exceptions pinned to exact catalogue lines. An entry is used only for its
+# target and only when the reference includes its `applies_from_baseline`
+# migration. Used entries are always reported. Verification fails on any
+# other difference, on an entry whose exact difference is not present (stale
+# or changed), and on a malformed file.
 #
 # Nothing is ever reconciled automatically: any difference stops the run.
 
@@ -37,7 +45,8 @@ CONFIRM="${CONFIRM:-}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 MIGRATIONS="${MIGRATIONS_DIR:-$ROOT/supabase/migrations}"
 SUPABASE="${SUPABASE_BIN:-supabase}"
-CATALOGUE="$ROOT/supabase/ops/catalogue.sql"
+CATALOGUE="${CATALOGUE_FILE:-$ROOT/supabase/ops/catalogue.sql}"
+ACCEPTED_FILE="${ACCEPTED_DIFFERENCES_FILE:-$ROOT/supabase/ops/accepted-differences.json}"
 WORK="${RUNNER_TEMP:-/tmp}/handson-db"
 REPORTS="$WORK/reports"
 SUMMARY="${GITHUB_STEP_SUMMARY:-/dev/stdout}"
@@ -65,6 +74,49 @@ summary ""
 # ---------------------------------------------------------------------------
 mapfile -t REPO < <(cd "$MIGRATIONS" && ls -1 *.sql | sort | sed -E 's/^([0-9]{14})_.*/\1/')
 file_for() { ls -1 "$MIGRATIONS"/"$1"_*.sql; }
+
+# ---------------------------------------------------------------------------
+# Accepted differences: validate the whole file before anything else
+# ---------------------------------------------------------------------------
+command -v jq >/dev/null || fail "jq is required"
+if [[ ! -f "$ACCEPTED_FILE" ]]; then
+  ACCEPTED_FILE="$WORK/no-accepted-differences.json"
+  echo '{"version": 1, "entries": []}' > "$ACCEPTED_FILE"
+fi
+read -r -d '' VALIDATE_ACCEPTED <<'JQ' || true
+  def fields: ["target", "applies_from_baseline", "expected", "found", "reason", "approval"];
+  # The object a catalogue line describes: its fields up to the first key=value.
+  def identity: split("|") | until(length == 0 or (.[-1] | test("=") | not); .[:-1]) | join("|");
+  def catalogue_line: type == "string" and test("^[a-z_]+\\|[^\\r\\n]+$") and (startswith("data|") | not);
+  if type != "object" then "the file must contain a JSON object"
+  elif .version != 1 then "\"version\" must be 1"
+  elif (.entries | type) != "array" then "\"entries\" must be a list"
+  else
+    (.entries | to_entries[] | .key as $i | .value as $e | "entry \($i + 1)" as $n |
+      if ($e | type) != "object" then "\($n): must be an object"
+      elif (($e | keys) - fields) != [] then "\($n): unknown field(s): \((($e | keys) - fields) | join(", "))"
+      elif (fields - ($e | keys)) != [] then "\($n): missing field(s): \((fields - ($e | keys)) | join(", "))"
+      elif ($e.target | IN("staging", "production") | not) then "\($n): target must be staging or production"
+      elif ($e.applies_from_baseline | type) != "string" or ($e.applies_from_baseline | IN($repo[]) | not) then "\($n): applies_from_baseline must be a migration version in the repository"
+      elif ($e.expected | catalogue_line | not) then "\($n): expected must be one schema catalogue line"
+      elif ($e.found | catalogue_line | not) then "\($n): found must be one schema catalogue line"
+      elif $e.expected == $e.found then "\($n): expected and found are identical"
+      elif ($e.expected | identity) != ($e.found | identity) then "\($n): expected and found describe different objects"
+      elif ($e.reason | type) != "string" or ($e.reason | length) < 40 then "\($n): reason must explain the difference (at least 40 characters)"
+      elif ($e.approval | type) != "string" or ($e.approval | length) < 40 then "\($n): approval must say how the entry is approved (at least 40 characters)"
+      else empty end),
+    (.entries | group_by([.target, .expected]) | map(select(length > 1))[] | "duplicate entries for \(.[0].target): \(.[0].expected)"),
+    (.entries | group_by([.target, .found]) | map(select(length > 1))[] | "duplicate entries for \(.[0].target): \(.[0].found)")
+  end
+JQ
+REPO_JSON="$(printf '%s\n' "${REPO[@]}" | jq -R . | jq -cs .)"
+ACCEPTED_PROBLEMS="$(jq -r --argjson repo "$REPO_JSON" "$VALIDATE_ACCEPTED" "$ACCEPTED_FILE" 2>&1)" \
+  || fail "The accepted differences file is not valid JSON: $ACCEPTED_PROBLEMS"
+if [[ -n "$ACCEPTED_PROBLEMS" ]]; then
+  summary "- Accepted differences file is malformed:"
+  while IFS= read -r problem; do summary "  - $problem"; done <<< "$ACCEPTED_PROBLEMS"
+  fail "The accepted differences file is malformed. Nothing was changed."
+fi
 
 HAS_HISTORY="$(target_query "select to_regclass('supabase_migrations.schema_migrations') is not null")"
 APPLIED=()
@@ -118,23 +170,74 @@ build_reference() {
   (cd "$dir" && "$SUPABASE" start -x realtime,studio,imgproxy,edge-runtime,logflare,vector,postgres-meta,supavisor >/dev/null)
 }
 
+# Catalogue lines are sorted here in byte order (LC_ALL=C), whatever order the
+# query returns them in; compare() relies on that and checks it.
 run_catalogue() { # $1 = url, $2 = output prefix
-  psql "$1" -X -q -At -v ON_ERROR_STOP=1 -f "$CATALOGUE" | LC_ALL=C sort > "$REPORTS/$2.all.txt"
-  grep -v '^data|' "$REPORTS/$2.all.txt" > "$REPORTS/$2.schema.txt" || true
-  grep '^data|' "$REPORTS/$2.all.txt" > "$REPORTS/$2.data.txt" || true
+  psql "$1" -X -q -At -v ON_ERROR_STOP=1 -f "$CATALOGUE" > "$REPORTS/$2.raw.txt"
+  LC_ALL=C sort "$REPORTS/$2.raw.txt" > "$REPORTS/$2.all.txt"
+  { grep -v '^data|' "$REPORTS/$2.all.txt" || true; } > "$REPORTS/$2.schema.txt"
+  { grep '^data|' "$REPORTS/$2.all.txt" || true; } > "$REPORTS/$2.data.txt"
 }
 
-compare() { # $1 = label
-  local diff_file="$REPORTS/$1.diff"
-  if diff -u "$REPORTS/reference.schema.txt" "$REPORTS/target.schema.txt" > "$diff_file"; then
-    summary "- Schema comparison ($1): **identical** ($(wc -l < "$REPORTS/target.schema.txt") objects checked)."
+compare() { # $1 = label, then the reference's migration versions
+  local label="$1"; shift
+  local ref_last="${*: -1}"
+  local removed="$REPORTS/$label.removed" added="$REPORTS/$label.added" tmp="$REPORTS/$label.tmp"
+  # comm needs both inputs in the same byte order: sort them here (independently
+  # of run_catalogue) and let comm verify it.
+  LC_ALL=C sort -o "$REPORTS/reference.schema.txt" "$REPORTS/reference.schema.txt"
+  LC_ALL=C sort -o "$REPORTS/target.schema.txt" "$REPORTS/target.schema.txt"
+  LC_ALL=C comm --check-order -23 "$REPORTS/reference.schema.txt" "$REPORTS/target.schema.txt" > "$removed" \
+    || fail "Internal error: the schema comparison inputs are not sorted. Nothing was changed."
+  LC_ALL=C comm --check-order -13 "$REPORTS/reference.schema.txt" "$REPORTS/target.schema.txt" > "$added" \
+    || fail "Internal error: the schema comparison inputs are not sorted. Nothing was changed."
+
+  # Entries for this target whose migration is part of this reference.
+  local used=0 stale=0 entry expected found from reason approval
+  while IFS= read -r entry; do
+    expected="$(jq -r .expected <<< "$entry")"; found="$(jq -r .found <<< "$entry")"
+    from="$(jq -r .applies_from_baseline <<< "$entry")"; reason="$(jq -r .reason <<< "$entry")"
+    approval="$(jq -r .approval <<< "$entry")"
+    if grep -Fxq -- "$expected" "$removed" && grep -Fxq -- "$found" "$added"; then
+      used=$((used + 1))
+      { grep -Fxv -- "$expected" "$removed" || true; } > "$tmp" && mv "$tmp" "$removed"
+      { grep -Fxv -- "$found" "$added" || true; } > "$tmp" && mv "$tmp" "$added"
+      summary "- **Accepted difference** ($label, from migration \`$from\`): $reason"
+      summary "  - Approval: $approval"
+      summary "  - Expected: \`$expected\`"
+      summary "  - Found: \`$found\`"
+    else
+      stale=$((stale + 1))
+      local why="the database no longer shows exactly this difference"
+      grep -Fxq -- "$expected" "$REPORTS/reference.schema.txt" || why="the reference no longer contains the expected line"
+      grep -Fxq -- "$expected" "$REPORTS/reference.schema.txt" && ! grep -Fxq -- "$found" "$REPORTS/target.schema.txt" \
+        && why="the database no longer contains the accepted line (its fingerprint changed or the difference was fixed)"
+      summary "- **Stale accepted difference** ($label): $why. Remove or update the entry for \`$expected\`."
+    fi
+  done < <(jq -c --arg t "$TARGET" --arg last "$ref_last" \
+             '.entries[] | select(.target == $t and $last != "" and .applies_from_baseline <= $last)' "$ACCEPTED_FILE")
+
+  local out_of_scope
+  out_of_scope="$(jq -r --arg t "$TARGET" --arg last "$ref_last" \
+    '[.entries[] | select(.target != $t or $last == "" or .applies_from_baseline > $last)] | length' "$ACCEPTED_FILE")"
+  (( out_of_scope == 0 )) || summary "- Accepted differences not used in this comparison (other target or later migration): $out_of_scope."
+
+  { sed 's/^/-/' "$removed"; sed 's/^/+/' "$added"; } > "$REPORTS/$label.diff"
+  if [[ ! -s "$REPORTS/$label.diff" ]] && (( stale == 0 )); then
+    if (( used > 0 )); then
+      summary "- Schema comparison ($label): **identical apart from $used accepted difference(s)** ($(wc -l < "$REPORTS/target.schema.txt") objects checked)."
+    else
+      summary "- Schema comparison ($label): **identical** ($(wc -l < "$REPORTS/target.schema.txt") objects checked)."
+    fi
     return 0
   fi
-  summary "- Schema comparison ($1): **differences found** (\`-\` expected from migrations, \`+\` found in the database):"
-  summary ""
-  summary '```diff'
-  head -n 200 "$diff_file" >> "$SUMMARY"
-  summary '```'
+  if [[ -s "$REPORTS/$label.diff" ]]; then
+    summary "- Schema comparison ($label): **differences found** (\`-\` expected from migrations, \`+\` found in the database):"
+    summary ""
+    summary '```diff'
+    head -n 200 "$REPORTS/$label.diff" >> "$SUMMARY"
+    summary '```'
+  fi
   return 1
 }
 
@@ -144,10 +247,10 @@ verify_against() { # $1 = label, then versions
   build_reference "$@"
   run_catalogue "$LOCAL_DB_URL" reference
   run_catalogue "$TARGET_DB_URL" target
-  if ! diff -q "$REPORTS/reference.data.txt" "$REPORTS/target.data.txt" >/dev/null; then
+  if ! diff -q <(LC_ALL=C sort "$REPORTS/reference.data.txt") <(LC_ALL=C sort "$REPORTS/target.data.txt") >/dev/null; then
     summary "- Reference data differs from the seed (expected when administrators add catalogue entries; not a schema problem)."
   fi
-  compare "$label"
+  compare "$label" "$@"
 }
 
 verify_against "before" "${BASE[@]}" || fail "The ${TARGET} database does not match the verified baseline. Nothing was changed. Review the differences and agree a reconciliation before trying again."
