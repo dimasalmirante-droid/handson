@@ -83,7 +83,7 @@ begin
   if v_reference is not null and char_length(v_reference) > 120 then
     raise exception 'The contract reference must be 120 characters or fewer' using errcode = '22023';
   end if;
-  if v_scope is null or char_length(v_scope) > 5000 then
+  if v_scope is null or char_length(v_scope) not between 1 and 5000 then
     raise exception 'Enter the services covered by this contract (up to 5,000 characters)' using errcode = '22023';
   end if;
   if v_note is not null and char_length(v_note) > 2000 then
