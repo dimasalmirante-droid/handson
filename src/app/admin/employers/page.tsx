@@ -34,6 +34,22 @@ export default async function EmployersPage() {
   if (error) console.error("admin employers list failed", error.code, error.message);
   const companies = (data ?? []) as Company[];
 
+  const latestNoteByCompany = new Map<string, string>();
+  if (companies.length > 0) {
+    const { data: notes, error: notesError } = await supabase
+      .from("company_admin_notes")
+      .select("company_id,body,created_at")
+      .in("company_id", companies.map((company) => company.id))
+      .order("created_at", { ascending: false });
+    if (notesError) {
+      console.error("admin employer notes list failed", notesError.code, notesError.message);
+    } else {
+      for (const entry of notes ?? []) {
+        if (!latestNoteByCompany.has(entry.company_id)) latestNoteByCompany.set(entry.company_id, entry.body);
+      }
+    }
+  }
+
   return (
     <>
       <PageHeader
@@ -68,7 +84,15 @@ export default async function EmployersPage() {
                 <tbody>
                   {companies.map((company) => (
                     <tr key={company.id} className="border-b border-line last:border-0">
-                      <td className="px-2 py-3 font-semibold">{company.name}</td>
+                      <td className="px-2 py-3">
+                        <p className="font-semibold">{company.name}</p>
+                        {latestNoteByCompany.get(company.id) && (
+                          <p className="mt-1 line-clamp-2 max-w-sm whitespace-pre-wrap text-xs font-normal text-ink-muted">
+                            <span className="font-semibold">Internal note: </span>
+                            {latestNoteByCompany.get(company.id)}
+                          </p>
+                        )}
+                      </td>
                       <td className="px-2 py-3 font-mono text-sm text-ink-muted">{company.slug}</td>
                       <td className="px-2 py-3"><CompanyStatusBadge status={company.status} /></td>
                       <td className="px-2 py-3 text-right text-sm text-ink-muted tabular-nums">{addedDate(company.created_at)}</td>
