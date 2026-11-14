@@ -811,7 +811,11 @@ describe("company contract register", () => {
   it("does not expose contract details to reviewers, company members, students or anonymous visitors", async () => {
     const id = await addContract({ reference: "PRIVATE-01" });
 
-    for (const user of [REVIEWER, STUDENT]) {
+    const member = await signUp(db, { email: "contract.member@example.com" });
+    const invitation = await invite(company, "contract.member@example.com");
+    await as(db, member, "select public.accept_invitation($1)", [invitation.hash]);
+
+    for (const user of [REVIEWER, STUDENT, member]) {
       const { rows } = await as(db, user, "select id from public.company_contracts where id = $1", [id]);
       expect(rows).toHaveLength(0);
     }
