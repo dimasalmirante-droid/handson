@@ -1,6 +1,16 @@
 # Module 2 · Employer Management
 
-Design record for the employer module. **Step 1 (foundation) is implemented.** Later steps (admin employer screens, invitations by email, the invitation page, the employer profile editor, media, review and publication) are described here only where Step 1 prepares for them.
+Design record for the employer module. **Step 1 (foundation) is implemented. Step 2.1 (the admin employer directory and company registration) is implemented in this branch.** The employer contact invitation flow, public Employer Page, Page Studio and managed talent campaigns are later steps.
+
+## Admin employer directory (Step 2.1)
+
+- `/admin/employers` is available to Handson administrators and super administrators; reviewers do not have access.
+- The directory reads company records through the existing administrator Row Level Security policy.
+- Registering an employer calls `admin_create_company()`. The database records the company and its audit event; its initial status is `onboarding`.
+- The optional setup note is stored in `company_admin_notes`, which remains internal to Handson administrators.
+- The slug is reserved for the employer's future permanent public page. Registering a company does not publish a page or activate its workspace.
+- This step does not store or verify signed commercial contracts, invite employer contacts, or create campaigns. Contract execution remains outside the application for now; a separate contract record and lifecycle will be designed before contract tracking is introduced.
+
 
 ## Accounts and workspaces
 

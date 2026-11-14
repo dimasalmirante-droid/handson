@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth/admin";
 import { createClient } from "@/lib/supabase/server";
+import { companyRegistrationSchema } from "@/lib/companies/validation";
 
 export type AdminResult = { ok: boolean; message: string };
 
@@ -17,6 +18,31 @@ function failure(error: { code?: string; message: string }, fallback: string): A
   if (error.code === "22023" || error.code === "P0002") return { ok: false, message: error.message };
   console.error("admin action failed", error.code, error.message);
   return { ok: false, message: fallback };
+}
+
+/** Register an employer workspace. Creation is audited by admin_create_company(). */
+export async function createCompany(_prev: AdminResult | null, formData: FormData): Promise<AdminResult> {
+  await requireAdmin("admin");
+
+  const parsed = companyRegistrationSchema.safeParse({
+    name: String(formData.get("name") ?? ""),
+    slug: String(formData.get("slug") ?? ""),
+    note: String(formData.get("note") ?? ""),
+  });
+  if (!parsed.success) {
+    return { ok: false, message: parsed.error.issues[0]?.message ?? "Check the employer details and try again." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_create_company", {
+    p_name: parsed.data.name,
+    p_slug: parsed.data.slug,
+    p_note: parsed.data.note,
+  });
+  if (error) return failure(error, "The employer could not be registered.");
+
+  revalidatePath("/admin/employers");
+  return { ok: true, message: "Employer registered. Its workspace remains in onboarding while Handson prepares the next steps." };
 }
 
 /* Every action re-checks the role here and again inside the database function, which also writes the audit log. */
