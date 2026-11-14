@@ -7,7 +7,11 @@ import { headers } from "next/headers";
  * Must be listed under Supabase → Authentication → URL Configuration → Redirect URLs.
  */
 export async function requestOrigin(): Promise<string> {
-  const h = await headers();
+  return originFromHeaders(await headers());
+}
+
+/** Pure form of requestOrigin: x-forwarded-host wins over host. */
+export function originFromHeaders(h: { get(name: string): string | null }): string {
   const host = h.get("x-forwarded-host") ?? h.get("host");
   const proto = h.get("x-forwarded-proto") ?? (host?.startsWith("localhost") ? "http" : "https");
   if (host) return `${proto}://${host}`;

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Overview } from "@/components/dashboard/overview";
 import { Alert } from "@/components/ui/feedback";
-import { requireUser } from "@/lib/auth/session";
+import { requireStudent } from "@/lib/auth/session";
 import { getCatalogues } from "@/lib/data/catalogues";
 import {
   getCompletion,
@@ -17,7 +17,7 @@ import {
 export const metadata: Metadata = { title: "Dashboard" };
 
 export default async function DashboardOverview({ searchParams }: PageProps<"/dashboard">) {
-  const user = await requireUser("/dashboard");
+  const user = await requireStudent("/dashboard");
   const [profile, completion, education, experiences, skills, documents, notifications, catalogues, sp] = await Promise.all([
     getProfile(user.id),
     getCompletion(user.id),

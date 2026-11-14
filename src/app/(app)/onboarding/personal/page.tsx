@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { PageNotice } from "@/components/onboarding/notice";
 import { PersonalForm } from "@/components/onboarding/personal-form";
 import { StepHeader } from "@/components/onboarding/wizard";
-import { requireUser } from "@/lib/auth/session";
+import { requireStudent } from "@/lib/auth/session";
 import { countryOptions, splitPhone } from "@/lib/countries";
 import { getCatalogues } from "@/lib/data/catalogues";
 import { getPhotoUrl, getProfile } from "@/lib/data/student";
@@ -11,7 +11,7 @@ import { PhotoUploader } from "@/components/files/photo-uploader";
 export const metadata: Metadata = { title: "Personal information" };
 
 export default async function PersonalStep({ searchParams }: PageProps<"/onboarding/personal">) {
-  const user = await requireUser("/onboarding/personal");
+  const user = await requireStudent("/onboarding/personal");
   const [profile, catalogues, sp] = await Promise.all([getProfile(user.id), getCatalogues(), searchParams]);
   const phone = splitPhone(profile?.phone);
   const photoUrl = await getPhotoUrl(profile?.photo_path ?? null);

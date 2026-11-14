@@ -23,3 +23,15 @@ export const publicEnv = {
     );
   },
 };
+
+/**
+ * The production Supabase project. Preview and staging deployments must never
+ * use it: the proxy refuses to serve a preview deployment configured with it.
+ */
+export const PRODUCTION_SUPABASE_REF = "mcqrcwlvvdbhpmfretdu";
+
+/** True when a Vercel preview deployment is (mis)configured with the production database. */
+export function previewUsesProductionDatabase(env: Record<string, string | undefined> = process.env): boolean {
+  if (env.VERCEL_ENV !== "preview") return false;
+  return (env.NEXT_PUBLIC_SUPABASE_URL ?? "").includes(PRODUCTION_SUPABASE_REF);
+}

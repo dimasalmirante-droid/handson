@@ -3,7 +3,7 @@ import { PageHeader, Panel } from "@/components/dashboard/page-header";
 import { PhotoUploader } from "@/components/files/photo-uploader";
 import { InterestsStep } from "@/components/onboarding/interests-step";
 import { PersonalForm } from "@/components/onboarding/personal-form";
-import { requireUser } from "@/lib/auth/session";
+import { requireStudent } from "@/lib/auth/session";
 import { countryOptions, splitPhone } from "@/lib/countries";
 import { getCatalogues } from "@/lib/data/catalogues";
 import { getInterests, getPhotoUrl, getProfile } from "@/lib/data/student";
@@ -11,7 +11,7 @@ import { getInterests, getPhotoUrl, getProfile } from "@/lib/data/student";
 export const metadata: Metadata = { title: "My profile" };
 
 export default async function ProfilePage() {
-  const user = await requireUser("/dashboard/profile");
+  const user = await requireStudent("/dashboard/profile");
   const [profile, interests, catalogues] = await Promise.all([getProfile(user.id), getInterests(user.id), getCatalogues()]);
   const phone = splitPhone(profile?.phone);
   const photoUrl = await getPhotoUrl(profile?.photo_path ?? null);

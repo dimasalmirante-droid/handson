@@ -2,7 +2,9 @@ import type { ReactNode } from "react";
 import { AppShell } from "@/components/layout/app-shell";
 import { WizardStepper } from "@/components/onboarding/wizard";
 import { Progress } from "@/components/ui/feedback";
-import { requireUser } from "@/lib/auth/session";
+import { getContexts } from "@/lib/auth/contexts";
+import { listWorkspaces } from "@/lib/auth/destination";
+import { requireStudent } from "@/lib/auth/session";
 import { getCompletion } from "@/lib/data/student";
 
 const SECTION_STEP: Record<string, number> = {
@@ -11,8 +13,8 @@ const SECTION_STEP: Record<string, number> = {
 
 /** Shared frame for every onboarding step: header, completion and step navigation. */
 export default async function OnboardingLayout({ children }: { children: ReactNode }) {
-  const user = await requireUser("/onboarding");
-  const completion = await getCompletion(user.id);
+  const user = await requireStudent("/onboarding");
+  const [completion, contexts] = await Promise.all([getCompletion(user.id), getContexts()]);
 
   const completeSteps = completion
     ? Object.entries(completion.sections)
@@ -21,7 +23,7 @@ export default async function OnboardingLayout({ children }: { children: ReactNo
     : [];
 
   return (
-    <AppShell email={user.email}>
+    <AppShell email={user.email} workspaces={contexts ? listWorkspaces(contexts) : []} current="student">
       <div className="mx-auto min-w-0 max-w-4xl">
         <div className="mb-8 flex flex-col gap-6">
           <Progress value={completion?.total ?? 0} label="Profile completion" />

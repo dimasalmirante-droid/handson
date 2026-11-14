@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requestOrigin } from "@/lib/auth/origin";
-import { requireUser } from "@/lib/auth/session";
+import { requireStudent } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { PASSWORD_MIN } from "@/lib/validation/auth";
 
@@ -13,7 +13,7 @@ export type SettingsResult = { ok: boolean; message?: string; fields?: Partial<R
 const VISIBILITY_CONSENT_VERSION = "2026-11";
 
 export async function setEmployerVisibility(granted: boolean): Promise<SettingsResult> {
-  await requireUser("/dashboard/settings");
+  await requireStudent("/dashboard/settings");
   const supabase = await createClient();
   const { error } = await supabase.rpc("set_employer_visibility", { p_granted: granted, p_version: VISIBILITY_CONSENT_VERSION });
   if (error) {
@@ -34,7 +34,7 @@ const emailSchema = z.object({
 });
 
 export async function changeEmail(_prev: SettingsResult, formData: FormData): Promise<SettingsResult> {
-  const user = await requireUser("/dashboard/settings");
+  const user = await requireStudent("/dashboard/settings");
   const parsed = emailSchema.safeParse({ email: formData.get("email") });
   if (!parsed.success) return { ok: false, fields: { email: parsed.error.issues[0].message } };
   if (parsed.data.email === user.email.toLowerCase()) {
@@ -74,7 +74,7 @@ const passwordSchema = z
   .refine((v) => v.newPassword !== v.currentPassword, { path: ["newPassword"], message: "Choose a password different from your current one." });
 
 export async function changePassword(_prev: SettingsResult, formData: FormData): Promise<SettingsResult> {
-  const user = await requireUser("/dashboard/settings");
+  const user = await requireStudent("/dashboard/settings");
   const parsed = passwordSchema.safeParse(Object.fromEntries(["currentPassword", "newPassword", "confirmPassword"].map((k) => [k, String(formData.get(k) ?? "")])));
   if (!parsed.success) {
     const fields: Record<string, string> = {};

@@ -194,14 +194,23 @@ export const getNotifications = cache(async (userId: string, limit = 5): Promise
   return (data ?? []) as Notification[];
 });
 
-export type ConsentRecord = { id: string; consent_type: string; granted: boolean; version: string; source: string; created_at: string };
+export type ConsentRecord = {
+  id: string;
+  consent_type: string;
+  granted: boolean;
+  version: string;
+  source: string;
+  created_at: string;
+  /** For final legal documents: "accepted" (Terms) or "acknowledged" (Privacy Notice). */
+  action: "accepted" | "acknowledged" | null;
+};
 
 export const getConsentHistory = cache(async (userId: string): Promise<ConsentRecord[]> => {
   const supabase = await createClient();
   const { data } = await supabase
     .from("consent_records")
-    .select("id, consent_type, granted, version, source, created_at")
-    .eq("profile_id", userId)
+    .select("id, consent_type, granted, version, source, created_at, action")
+    .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(50);
   return (data ?? []) as ConsentRecord[];

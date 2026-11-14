@@ -43,7 +43,7 @@ Status as of 9 November 2026. Work through the sections in order; each item says
 ## 6. Legal and content
 
 - [ ] Legal review of the **Privacy Policy** and **Terms and Conditions** against Mozambican law. Fill in the placeholders (date, minimum age, liability, jurisdiction), name the data processors (Supabase and its region, Vercel, Resend, Google) and remove the *Draft for review* notes.
-- [ ] If the terms change materially, update `TERMS_VERSION` in `src/app/(auth)/actions.ts` so new acceptances are recorded against the new version.
+- [ ] When the final texts are approved, a super admin adds them in **Admin → Legal documents** (version, effective date, full text) and publishes both. From their effective date every user is asked once to accept the Terms and acknowledge the Privacy Notice. Never publish a draft or placeholder text. For later changes, publish a new version of the changed document only.
 - [ ] Confirm the employer-visibility wording in **Settings** matches what the future employer portal will show.
 - [ ] Review the 25 starter institutions and the skills catalogue; add missing entries.
 - [ ] Send a test message through the website **Contact** form and confirm it reaches hello@handson.cloud.
@@ -60,6 +60,8 @@ Create two dedicated test accounts (not personal ones): one student (email and p
   - [ ] Turn employer visibility on and off; consent history shows both.
   - [ ] Password reset and change email both work end to end.
   - [ ] Admin: search and filter, open a profile, verify and reject (student sees the notification), export CSV, suspend and reactivate, audit log shows each action.
+  - [ ] Google sign-in with a real Google account: register from the registration page (student profile created), and sign in again (lands on the same workspace). Repeat before each release that changes sign-in.
+  - [ ] After final legal documents are published: the acceptance screen appears once, records both documents, and does not appear again.
 
 ## 8. Operations after launch
 
@@ -67,6 +69,10 @@ Create two dedicated test accounts (not personal ones): one student (email and p
 - [ ] Monthly: review **Admin → Audit log** and the team list; remove access that is no longer needed.
 - [ ] Account deletion requests (from hello@handson.cloud): delete the user in **Supabase → Authentication → Users**. Their profile, records and consent history are removed with them; then remove their files from Storage (`documents/<user id>/` and `avatars/<user id>/`).
 - [ ] Before adding the Portuguese interface or the employer portal, run the full test suite (`npm test`, `npm run test:e2e`).
+
+## 9. Later database clean-up
+
+- [ ] Remove the deprecated `consent_records.profile_id` column (contract phase) once the conditions in [employer-module.md](employer-module.md) are met and approved.
 
 ## Known limitations of the MVP
 

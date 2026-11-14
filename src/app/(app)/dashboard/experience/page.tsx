@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import { PageHeader, Panel } from "@/components/dashboard/page-header";
 import { ExperienceStep } from "@/components/onboarding/experience-step";
-import { requireUser } from "@/lib/auth/session";
+import { requireStudent } from "@/lib/auth/session";
 import { getExperiences } from "@/lib/data/student";
 
 export const metadata: Metadata = { title: "Experience" };
 
 export default async function DashboardExperiencePage() {
-  const user = await requireUser("/dashboard/experience");
+  const user = await requireStudent("/dashboard/experience");
   const records = await getExperiences(user.id);
   return (
     <>

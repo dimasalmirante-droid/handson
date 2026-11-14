@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { finishOnboarding } from "@/app/(app)/onboarding/actions";
 import { Button, ButtonLink, buttonClasses } from "@/components/ui/button";
 import { Alert, Badge } from "@/components/ui/feedback";
-import { requireUser } from "@/lib/auth/session";
+import { requireStudent } from "@/lib/auth/session";
 import { countryOptions } from "@/lib/countries";
 import { DOCUMENT_TYPE_LABELS, type DocumentType } from "@/lib/files";
 import { getCatalogues } from "@/lib/data/catalogues";
@@ -63,7 +63,7 @@ function Section({ id, score, weight, missing, children }: { id: string; score: 
 const muted = (text: string) => <p className="text-ink-muted">{text}</p>;
 
 export default async function ReviewPage({ searchParams }: PageProps<"/onboarding/review">) {
-  const user = await requireUser("/onboarding/review");
+  const user = await requireStudent("/onboarding/review");
   const [profile, completion, education, skills, interests, experiences, documents, catalogues, sp] = await Promise.all([
     getProfile(user.id),
     getCompletion(user.id),

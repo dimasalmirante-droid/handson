@@ -5,7 +5,7 @@ import { PageHeader, Panel } from "@/components/dashboard/page-header";
 import { EmailForm, PasswordForm, VisibilityToggle } from "@/components/dashboard/settings-forms";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/feedback";
-import { requireUser } from "@/lib/auth/session";
+import { requireStudent } from "@/lib/auth/session";
 import { getConsentHistory, getProfile } from "@/lib/data/student";
 import { site } from "@/lib/site";
 
@@ -22,7 +22,7 @@ const dateTime = (iso: string) =>
   new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Africa/Maputo" });
 
 export default async function SettingsPage({ searchParams }: PageProps<"/dashboard/settings">) {
-  const user = await requireUser("/dashboard/settings");
+  const user = await requireStudent("/dashboard/settings");
   const [profile, history, sp] = await Promise.all([getProfile(user.id), getConsentHistory(user.id), searchParams]);
   const usesPassword = user.provider === "email";
 
@@ -47,7 +47,15 @@ export default async function SettingsPage({ searchParams }: PageProps<"/dashboa
                   <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
                     <span>
                       {CONSENT_LABELS[c.consent_type] ?? c.consent_type}{" "}
-                      {c.granted ? <Badge tone="success">Agreed</Badge> : <Badge>Withdrawn</Badge>}
+                      {c.action === "accepted" ? (
+                        <Badge tone="success">Accepted</Badge>
+                      ) : c.action === "acknowledged" ? (
+                        <Badge tone="success">Acknowledged</Badge>
+                      ) : c.granted ? (
+                        <Badge tone="success">Agreed</Badge>
+                      ) : (
+                        <Badge>Withdrawn</Badge>
+                      )}
                     </span>
                     <span className="text-ink-muted">{dateTime(c.created_at)} · version {c.version}</span>
                   </li>

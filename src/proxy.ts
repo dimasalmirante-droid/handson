@@ -1,18 +1,29 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { isGuestOnlyPath, isProtectedPath } from "@/lib/auth/redirects";
+import { previewUsesProductionDatabase } from "@/lib/env";
 
 /**
  * Runs before every page request:
  * 1. Refreshes the Supabase session and writes updated auth cookies.
  * 2. Sends signed-out visitors away from protected routes.
- * 3. Sends signed-in users away from the login and registration pages.
+ * 3. Sends signed-in users away from the login and registration pages to
+ *    /start, which picks their workspace.
  *
  * This is a convenience layer, not the security boundary: every protected
  * page and action checks the user again on the server, and the database
  * enforces Row Level Security.
  */
 export async function proxy(request: NextRequest) {
+  // Staging isolation: a preview deployment must use the staging database.
+  // Refuse to serve anything rather than touch production data.
+  if (previewUsesProductionDatabase()) {
+    return new NextResponse("This preview deployment is configured with the production database and has been disabled.", {
+      status: 503,
+      headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" },
+    });
+  }
+
   // If Supabase falls back to the Site URL after OAuth, the one-time code
   // lands on "/". Hand it to the callback route so the sign-in completes.
   if (request.nextUrl.pathname === "/" && request.nextUrl.searchParams.has("code")) {
@@ -57,7 +68,7 @@ export async function proxy(request: NextRequest) {
 
   if (signedIn && (isGuestOnlyPath(pathname) || pathname === "/")) {
     const target = request.nextUrl.clone();
-    target.pathname = "/dashboard";
+    target.pathname = "/start";
     target.search = "";
     return redirectWithCookies(target, response);
   }

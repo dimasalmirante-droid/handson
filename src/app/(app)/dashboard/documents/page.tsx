@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import { PageHeader, Panel } from "@/components/dashboard/page-header";
 import { DocumentsStep } from "@/components/onboarding/documents-step";
-import { requireUser } from "@/lib/auth/session";
+import { requireStudent } from "@/lib/auth/session";
 import { getDocuments, getProfile } from "@/lib/data/student";
 
 export const metadata: Metadata = { title: "Documents" };
 
 export default async function DashboardDocumentsPage() {
-  const user = await requireUser("/dashboard/documents");
+  const user = await requireStudent("/dashboard/documents");
   const [profile, documents] = await Promise.all([getProfile(user.id), getDocuments(user.id)]);
   return (
     <>
