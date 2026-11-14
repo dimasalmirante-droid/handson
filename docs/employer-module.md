@@ -1,6 +1,6 @@
 # Module 2 · Employer Management
 
-Design record for the employer module. **Step 1 (foundation) is implemented. Step 2.1 (the admin employer directory and company registration) is implemented in this branch.** The employer contact invitation flow, public Employer Page, Page Studio and managed talent campaigns are later steps.
+Design record for the employer module. **Step 1 (foundation), Step 2.1 (the admin employer directory and company registration), and Step 2.2 (the internal signed-contract register) are implemented.** Employer contact invitations, the public Employer Page, Page Studio and managed talent campaigns are later steps.
 
 ## Admin employer directory (Step 2.1)
 
@@ -9,8 +9,17 @@ Design record for the employer module. **Step 1 (foundation) is implemented. Ste
 - Registering an employer calls `admin_create_company()`. The database records the company and its audit event; its initial status is `onboarding`.
 - The optional setup note is stored in `company_admin_notes`, which remains internal to Handson administrators.
 - The slug is reserved for the employer's future permanent public page. Registering a company does not publish a page or activate its workspace.
-- This step does not store or verify signed commercial contracts, invite employer contacts, or create campaigns. Contract execution remains outside the application for now; a separate contract record and lifecycle will be designed before contract tracking is introduced.
+- This step does not invite employer contacts or create campaigns. Signed contracts are registered through the separate Step 2.2 flow; the physical signed agreement remains the legal source document.
 
+## Internal signed-contract register (Step 2.2)
+
+- The register is available from each employer in the Handson admin area; reviewers and employer members cannot access it.
+- Handson records the reference (optional), signing date, start and end dates, agreed service scope, and an optional internal note.
+- The signed physical agreement remains the legal source. Handson does not negotiate, sign, upload or store the original agreement in this step.
+- Contract status is derived from its dates and any recorded early termination: scheduled, active, expired or terminated early. The employer workspace status remains a separate control.
+- Creation and early termination use the audited `admin_create_company_contract()` and `admin_terminate_company_contract()` database functions. Direct client writes are not granted.
+- Early termination requires a reason and is recorded once. The signed terms and original metadata are otherwise preserved.
+- Registering a contract does not automatically activate the employer workspace.
 
 ## Accounts and workspaces
 
@@ -46,7 +55,7 @@ The student marker can only add a student profile for the person themselves; it 
 
 - **Token:** 32 random bytes (base64url). Only its SHA-256 hash is stored. It is valid for 7 days, and resending replaces it (Step 3).
 - **Uniqueness:** at most one pending invitation per company and email (case-insensitive; stored lower-case). Creating an invitation marks an expired pending one `expired` first, so expiry never blocks re-invitation. Inviting a current member is refused.
-- **`accept_invitation(token_hash)`:** in one transaction, with the invitation row locked:
+- `accept_invitation(token_hash)`: in one transaction, with the invitation row locked:
   - the invitation must be pending and not expired;
   - the account must be active, with a verified email equal to the invited email (ignoring case);
   - the company must not be suspended, and the person must not already be a member.

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { PageHeader, Panel } from "@/components/dashboard/page-header";
 import { CreateCompanyForm, CompanyStatusBadge } from "@/components/admin/employers";
 import { Alert, EmptyState } from "@/components/ui/feedback";
@@ -61,7 +62,7 @@ export default async function EmployersPage() {
           <CreateCompanyForm />
         </Panel>
 
-        <Panel title={`Employer directory (${companies.length})`}>
+        <Panel title={"Employer directory (" + companies.length + ")"}>
           {error ? (
             <Alert tone="danger">
               Employer records could not be loaded. Refresh the page or contact a Handson administrator.
@@ -72,12 +73,13 @@ export default async function EmployersPage() {
             </EmptyState>
           ) : (
             <div className="-mx-2 overflow-x-auto sm:mx-0">
-              <table className="w-full min-w-[560px] text-left text-[15px]">
+              <table className="w-full min-w-[660px] text-left text-[15px]">
                 <thead>
                   <tr className="border-b border-line text-sm text-ink-muted">
                     <th className="px-2 py-3 font-medium">Company</th>
                     <th className="px-2 py-3 font-medium">Reserved page slug</th>
                     <th className="px-2 py-3 font-medium">Status</th>
+                    <th className="px-2 py-3 font-medium">Contracts</th>
                     <th className="px-2 py-3 text-right font-medium">Added</th>
                   </tr>
                 </thead>
@@ -95,6 +97,14 @@ export default async function EmployersPage() {
                       </td>
                       <td className="px-2 py-3 font-mono text-sm text-ink-muted">{company.slug}</td>
                       <td className="px-2 py-3"><CompanyStatusBadge status={company.status} /></td>
+                      <td className="px-2 py-3">
+                        <Link
+                          href={"/admin/employers/" + company.id + "/contracts"}
+                          className="font-semibold text-indigo hover:underline"
+                        >
+                          Manage contracts
+                        </Link>
+                      </td>
                       <td className="px-2 py-3 text-right text-sm text-ink-muted tabular-nums">{addedDate(company.created_at)}</td>
                     </tr>
                   ))}
