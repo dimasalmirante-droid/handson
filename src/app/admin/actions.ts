@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth/admin";
 import { createClient } from "@/lib/supabase/server";
+import { companyContractRegistrationSchema } from "@/lib/companies/contracts";
 import { companyRegistrationSchema } from "@/lib/companies/validation";
 
 export type AdminResult = { ok: boolean; message: string };
@@ -135,4 +136,78 @@ export async function cleanOrphanedFiles(): Promise<AdminResult> {
   });
   revalidatePath("/admin/maintenance");
   return { ok: removed === files.length, message: `Removed ${removed} of ${files.length} orphaned files.` };
+}
+
+
+/** Register metadata for a physically signed employer contract. Direct table writes are not granted. */
+export async function createCompanyContract(
+  companyId: string,
+  _prev: AdminResult | null,
+  formData: FormData,
+): Promise<AdminResult> {
+  await requireAdmin("admin");
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(companyId)) {
+    return { ok: false, message: "Invalid employer." };
+  }
+
+  const parsed = companyContractRegistrationSchema.safeParse({
+    reference: String(formData.get("reference") ?? ""),
+    signedOn: String(formData.get("signedOn") ?? ""),
+    startsOn: String(formData.get("startsOn") ?? ""),
+    endsOn: String(formData.get("endsOn") ?? ""),
+    serviceScope: String(formData.get("serviceScope") ?? ""),
+    internalNote: String(formData.get("internalNote") ?? ""),
+  });
+  if (!parsed.success) {
+    return { ok: false, message: parsed.error.issues[0]?.message ?? "Check the contract details and try again." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_create_company_contract", {
+    p_company: companyId,
+    p_reference: parsed.data.reference,
+    p_signed_on: parsed.data.signedOn,
+    p_starts_on: parsed.data.startsOn,
+    p_ends_on: parsed.data.endsOn,
+    p_service_scope: parsed.data.serviceScope,
+    p_internal_note: parsed.data.internalNote,
+  });
+
+  if (error?.code === "23505") {
+    return { ok: false, message: "A contract with this reference is already registered for this employer." };
+  }
+  if (error) return failure(error, "The signed contract could not be registered.");
+
+  revalidatePath("/admin/employers");
+  revalidatePath("/admin/employers/" + companyId + "/contracts");
+  return { ok: true, message: "Signed contract registered. The employer workspace status has not changed." };
+}
+
+/** Record one early termination with a required reason; the database writes the audit event. */
+export async function terminateCompanyContract(
+  companyId: string,
+  contractId: string,
+  reason: string,
+): Promise<AdminResult> {
+  await requireAdmin("admin");
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!uuid.test(companyId) || !uuid.test(contractId) || typeof reason !== "string") {
+    return { ok: false, message: "Invalid request." };
+  }
+
+  const cleanReason = reason.trim();
+  if (cleanReason.length < 3 || cleanReason.length > 500) {
+    return { ok: false, message: "Enter a termination reason of 3 to 500 characters." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_terminate_company_contract", {
+    p_contract: contractId,
+    p_reason: cleanReason,
+  });
+  if (error) return failure(error, "The contract could not be terminated.");
+
+  revalidatePath("/admin/employers");
+  revalidatePath("/admin/employers/" + companyId + "/contracts");
+  return { ok: true, message: "Early termination recorded and audited." };
 }
