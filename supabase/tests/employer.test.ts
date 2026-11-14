@@ -737,3 +737,153 @@ describe("database function security", () => {
     }
   });
 });
+
+
+// ---------------------------------------------------------------------------
+// Signed contract register (Handson administrators only).
+describe("company contract register", () => {
+  let company: string;
+
+  beforeAll(async () => {
+    company = await createCompany("Contract Register Lda", "contract-register");
+  });
+
+  async function addContract(overrides: Partial<{
+    reference: string | null;
+    signedOn: string;
+    startsOn: string;
+    endsOn: string | null;
+    scope: string;
+    note: string | null;
+  }> = {}) {
+    const values = {
+      reference: "HR-2026-01",
+      signedOn: "2026-11-10",
+      startsOn: "2026-12-01",
+      endsOn: "2027-11-30",
+      scope: "Graduate recruitment and internship talent campaigns.",
+      note: null,
+      ...overrides,
+    };
+    const { rows } = await as<{ id: string }>(
+      db,
+      ADMIN,
+      `select public.admin_create_company_contract(
+        $1, $2, $3::date, $4::date, $5::date, $6, $7
+      ) as id`,
+      [company, values.reference, values.signedOn, values.startsOn, values.endsOn, values.scope, values.note],
+    );
+    return rows[0].id;
+  }
+
+  it("records a signed physical agreement and makes its metadata available to Handson admins", async () => {
+    const id = await addContract();
+    const { rows } = await as<{
+      company_id: string;
+      reference: string;
+      signed_on: string;
+      starts_on: string;
+      ends_on: string;
+      service_scope: string;
+      created_by: string;
+      terminated_at: string | null;
+    }>(
+      db,
+      ADMIN,
+      `select company_id, reference, signed_on::text, starts_on::text, ends_on::text,
+              service_scope, created_by, terminated_at
+         from public.company_contracts where id = $1`,
+      [id],
+    );
+
+    expect(rows[0]).toMatchObject({
+      company_id: company,
+      reference: "HR-2026-01",
+      signed_on: "2026-11-10",
+      starts_on: "2026-12-01",
+      ends_on: "2027-11-30",
+      service_scope: "Graduate recruitment and internship talent campaigns.",
+      created_by: ADMIN,
+      terminated_at: null,
+    });
+  });
+
+  it("does not expose contract details to reviewers, company members, students or anonymous visitors", async () => {
+    const id = await addContract({ reference: "PRIVATE-01" });
+
+    const member = await signUp(db, { email: "contract.member@example.com" });
+    const invitation = await invite(company, "contract.member@example.com");
+    await as(db, member, "select public.accept_invitation($1)", [invitation.hash]);
+
+    for (const user of [REVIEWER, STUDENT, member]) {
+      const { rows } = await as(db, user, "select id from public.company_contracts where id = $1", [id]);
+      expect(rows).toHaveLength(0);
+    }
+    await expectDenied(db, null, "select id from public.company_contracts where id = $1", [id]);
+  });
+
+  it("allows only Handson admins to create and terminate contracts", async () => {
+    const args = [company, "AUTH-01", "2026-11-10", "2026-12-01", "2027-11-30", "Internship programme", null];
+    const sql = `select public.admin_create_company_contract(
+      $1, $2, $3::date, $4::date, $5::date, $6, $7
+    )`;
+    await expectDenied(db, REVIEWER, sql, args);
+    await expectDenied(db, STUDENT, sql, args);
+    await expectDenied(db, null, sql, args);
+
+    const id = await addContract({ reference: "WRITE-01" });
+    await expectDenied(db, ADMIN, "update public.company_contracts set service_scope = 'Changed' where id = $1", [id]);
+    await expectDenied(db, ADMIN, "delete from public.company_contracts where id = $1", [id]);
+    await expectDenied(db, ADMIN, "insert into public.company_contracts (company_id, signed_on, starts_on, service_scope) values ($1, current_date, current_date, 'Direct write')", [company]);
+  });
+
+  it("rejects invalid dates, missing service scope and contracts for unknown companies", async () => {
+    const create = `select public.admin_create_company_contract(
+      $1, $2, $3::date, $4::date, $5::date, $6, $7
+    )`;
+    await expect(as(db, ADMIN, create, [
+      company, "BAD-DATES", "2026-11-10", "2026-12-01", "2026-11-30", "Services", null,
+    ])).rejects.toThrow(/end date/i);
+    await expect(as(db, ADMIN, create, [
+      company, "NO-SCOPE", "2026-11-10", "2026-12-01", null, "   ", null,
+    ])).rejects.toThrow(/services covered/i);
+    await expect(as(db, ADMIN, create, [
+      "00000000-0000-4000-9000-999999999999", "UNKNOWN", "2026-11-10", "2026-12-01", null, "Services", null,
+    ])).rejects.toThrow(/company not found/i);
+  });
+
+  it("requires unique contract references within a company, but permits different companies to reuse a reference", async () => {
+    await addContract({ reference: "DUP-01" });
+    await expect(addContract({ reference: " dup-01 " })).rejects.toThrow();
+    const other = await createCompany("Second Contract Company", "second-contract-company");
+    const { rows } = await as<{ id: string }>(
+      db,
+      ADMIN,
+      `select public.admin_create_company_contract(
+        $1, $2, $3::date, $4::date, $5::date, $6, $7
+      ) as id`,
+      [other, "DUP-01", "2026-11-10", "2026-12-01", null, "Graduate hiring", null],
+    );
+    expect(rows[0].id).toBeTruthy();
+  });
+
+  it("records early termination once and requires an audit reason", async () => {
+    const id = await addContract({ reference: "TERM-01" });
+    await expect(
+      as(db, ADMIN, "select public.admin_terminate_company_contract($1, $2)", [id, "  "]),
+    ).rejects.toThrow(/termination reason/i);
+
+    await as(db, ADMIN, "select public.admin_terminate_company_contract($1, $2)", [id, "Employer terminated the agreement."]);
+    const { rows } = await as<{ terminated_at: string | null; termination_reason: string | null }>(
+      db,
+      ADMIN,
+      "select terminated_at, termination_reason from public.company_contracts where id = $1",
+      [id],
+    );
+    expect(rows[0].terminated_at).toBeTruthy();
+    expect(rows[0].termination_reason).toBe("Employer terminated the agreement.");
+    await expect(
+      as(db, ADMIN, "select public.admin_terminate_company_contract($1, $2)", [id, "Duplicate termination."]),
+    ).rejects.toThrow(/already been terminated/i);
+  });
+});
