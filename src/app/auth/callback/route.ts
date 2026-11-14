@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { safeNextPath } from "@/lib/auth/redirects";
 import { ensureStudentProfile } from "@/lib/auth/student-profile";
+import { describeRequest, hostOf } from "@/lib/auth/oauth-diagnostics";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -20,7 +21,19 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code");
   const providerError = searchParams.get("error");
 
+  // TEMPORARY diagnostics: hosts, deployment and error codes only. Never the
+  // code, state, cookies or query string.
+  const diag = describeRequest(request.headers, {
+    cookieNames: request.cookies.getAll().map((c) => c.name),
+  });
+
   if (providerError || !code) {
+    console.error("[oauth-diag] callback without code", {
+      ...diag,
+      error: providerError,
+      error_code: searchParams.get("error_code"),
+      hasCode: Boolean(code),
+    });
     return NextResponse.redirect(new URL("/login?error=google", origin));
   }
 
@@ -28,6 +41,7 @@ export async function GET(request: NextRequest) {
   const { data, error } = await supabase.auth.exchangeCodeForSession(code);
   if (error || !data.user) {
     console.error("exchangeCodeForSession failed", error?.code, error?.message);
+    console.error("[oauth-diag] callback exchange failed", { ...diag, callbackHost: hostOf(request.url), errorCode: error?.code });
     return NextResponse.redirect(new URL("/login?error=google", origin));
   }
 

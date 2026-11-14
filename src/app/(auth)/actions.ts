@@ -1,7 +1,9 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { googleCallbackUrl } from "@/lib/auth/oauth";
+import { describeRequest, hostOf } from "@/lib/auth/oauth-diagnostics";
 import { requestOrigin } from "@/lib/auth/origin";
 import { safeNextPath } from "@/lib/auth/redirects";
 import { getCurrentLegalDocuments } from "@/lib/data/legal";
@@ -141,12 +143,24 @@ export async function googleAction(formData: FormData): Promise<void> {
     intent: String(formData.get("intent") ?? ""),
   });
 
+  // TEMPORARY diagnostics: hosts and deployment only (no cookies/query/form).
+  const hdrs = await headers();
+  const diag = describeRequest(hdrs);
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
       redirectTo: callback,
       queryParams: { prompt: "select_account" },
     },
+  });
+
+  console.error("[oauth-diag] googleAction", {
+    ...diag,
+    derivedOriginHost: hostOf(origin),
+    callbackHost: hostOf(callback),
+    authorizeRedirectToHost: data?.url ? hostOf(new URL(data.url).searchParams.get("redirect_to") ?? "") : null,
+    errorCode: error?.code,
   });
 
   if (error || !data.url) {
