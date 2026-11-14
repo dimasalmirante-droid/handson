@@ -18,7 +18,7 @@ alter table public.companies
     or (
       contact_email::text = lower(btrim(contact_email::text))
       and char_length(contact_email::text) <= 320
-      and contact_email::text ~ '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$'
+      and contact_email::text ~ '^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$'
     )
   );
 
@@ -47,7 +47,7 @@ begin
 
   if v_email is not null and (
     char_length(v_email) > 320
-    or v_email !~ '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$'
+    or v_email !~ '^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$'
   ) then
     raise exception 'Enter a valid official company email address' using errcode = '22023';
   end if;
