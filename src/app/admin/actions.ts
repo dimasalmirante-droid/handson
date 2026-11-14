@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth/admin";
 import { createClient } from "@/lib/supabase/server";
-import { companyContractRegistrationSchema } from "@/lib/companies/contracts";
+import { companyContractRegistrationSchema, getCompanyContractStatus } from "@/lib/companies/contracts";
 import { companyRegistrationSchema } from "@/lib/companies/validation";
 
 export type AdminResult = { ok: boolean; message: string };
@@ -201,6 +201,35 @@ export async function terminateCompanyContract(
   }
 
   const supabase = await createClient();
+  const { data: contractData, error: contractError } = await supabase
+    .from("company_contracts")
+    .select("starts_on,ends_on,terminated_at")
+    .eq("id", contractId)
+    .eq("company_id", companyId)
+    .maybeSingle();
+  if (contractError) return failure(contractError, "The contract could not be checked.");
+  if (!contractData) return { ok: false, message: "Contract not found for this employer." };
+
+  const dateParts = new Intl.DateTimeFormat("en", {
+    timeZone: "Africa/Maputo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const datePart = (type: string) => dateParts.find((part) => part.type === type)?.value ?? "";
+  const today = datePart("year") + "-" + datePart("month") + "-" + datePart("day");
+  const status = getCompanyContractStatus(
+    {
+      startsOn: contractData.starts_on,
+      endsOn: contractData.ends_on,
+      terminatedAt: contractData.terminated_at,
+    },
+    today,
+  );
+  if (status !== "active" && status !== "scheduled") {
+    return { ok: false, message: "Only scheduled or active contracts can be terminated early." };
+  }
+
   const { error } = await supabase.rpc("admin_terminate_company_contract", {
     p_contract: contractId,
     p_reason: cleanReason,

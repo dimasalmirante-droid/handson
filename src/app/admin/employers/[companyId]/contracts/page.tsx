@@ -144,7 +144,7 @@ export default async function EmployerContractsPage({
                       <div>
                         <p className="font-semibold">{contract.reference || "Contract without reference"}</p>
                         <p className="mt-1 text-sm text-ink-muted">
-                          Registered {formatDate(contract.created_at.slice(0, 10))}
+                          Registered {formatDateTime(contract.created_at)}
                         </p>
                       </div>
                       <Badge tone={badge.tone}>{badge.label}</Badge>
