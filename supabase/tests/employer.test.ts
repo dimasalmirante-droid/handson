@@ -706,7 +706,7 @@ describe("administration functions", () => {
     expect(account.rows).toHaveLength(0);
     const membership = await db.query("select user_id from public.company_members where company_id = $1", [co]);
     expect(membership.rows).toHaveLength(0);
-    const audit = await db.query(
+    const audit = await db.query<{ action: string }>(
       "select action from public.audit_logs where company_id = $1 order by id",
       [co],
     );
