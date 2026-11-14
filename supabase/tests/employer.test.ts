@@ -22,6 +22,16 @@ async function createCompany(name: string, slug: string, note?: string) {
   return rows[0].id;
 }
 
+async function createCompanyWithContact(name: string, slug: string, contactEmail: string | null, note?: string) {
+  const { rows } = await as<{ id: string }>(
+    db,
+    ADMIN,
+    "select public.admin_create_company_with_contact($1, $2, $3, $4) as id",
+    [name, slug, note ?? null, contactEmail],
+  );
+  return rows[0].id;
+}
+
 async function invite(company: string, email: string, role = "editor", expires = inDays(7)) {
   const t = newToken();
   const { rows } = await as<{ id: string }>(
@@ -651,6 +661,21 @@ describe("administration functions", () => {
     await expectDenied(db, REVIEWER, "select public.admin_create_company('X Lda', 'x-lda')", [], /Not authorised/);
     await expectDenied(db, STUDENT, "select public.admin_create_company('X Lda', 'x-lda')", [], /Not authorised/);
     await expectDenied(db, null, "select public.admin_create_company('X Lda', 'x-lda')");
+    await expectDenied(
+      db,
+      REVIEWER,
+      "select public.admin_create_company_with_contact('X Lda', 'x-lda-contact', null, 'hr@example.com')",
+      [],
+      /Not authorised/,
+    );
+    await expectDenied(
+      db,
+      STUDENT,
+      "select public.admin_create_company_with_contact('X Lda', 'x-lda-student', null, 'hr@example.com')",
+      [],
+      /Not authorised/,
+    );
+    await expectDenied(db, null, "select public.admin_create_company_with_contact('X Lda', 'x-lda-anon', null, 'hr@example.com')");
     const co = await createCompany("Gamma Lda", "gamma");
     await expectDenied(
       db,
@@ -665,6 +690,45 @@ describe("administration functions", () => {
     await expectDenied(db, ADMIN, "select public.admin_create_company('Delta', 'Delta Lda!')", [], /web address/);
     await createCompany("Delta Lda", "delta");
     await expectDenied(db, ADMIN, "select public.admin_create_company('Delta Two', 'delta')", [], /already used/);
+  });
+
+  it("stores the official company contact as company data, not as a user account", async () => {
+    const co = await createCompanyWithContact("Vodacom Moçambique", "vodacom-mocambique", "INFORMACAO@VM.CO.MZ");
+    const { rows } = await as<{ name: string; contact_email: string | null }>(
+      db,
+      ADMIN,
+      "select name, contact_email::text from public.companies where id = $1",
+      [co],
+    );
+    expect(rows).toEqual([{ name: "Vodacom Moçambique", contact_email: "informacao@vm.co.mz" }]);
+
+    const account = await db.query("select id from auth.users where lower(email) = 'informacao@vm.co.mz'");
+    expect(account.rows).toHaveLength(0);
+    const membership = await db.query("select user_id from public.company_members where company_id = $1", [co]);
+    expect(membership.rows).toHaveLength(0);
+    const audit = await db.query(
+      "select action from public.audit_logs where company_id = $1 order by id",
+      [co],
+    );
+    expect(audit.rows.map((row) => row.action)).toEqual(["company.created", "company.contact_registered"]);
+  });
+
+  it("validates the official company contact and permits it to be left blank", async () => {
+    await expectDenied(
+      db,
+      ADMIN,
+      "select public.admin_create_company_with_contact('Invalid Contact Lda', 'invalid-contact', null, 'not-an-email')",
+      [],
+      /official company email/,
+    );
+    const co = await createCompanyWithContact("No Contact Lda", "no-contact", "   ");
+    const { rows } = await as<{ contact_email: string | null }>(
+      db,
+      ADMIN,
+      "select contact_email::text from public.companies where id = $1",
+      [co],
+    );
+    expect(rows).toEqual([{ contact_email: null }]);
   });
 
   it("records every action in the audit log with the company", async () => {
@@ -688,7 +752,7 @@ describe("database function security", () => {
     "handle_new_account", "accounts_mirror_status", "profiles_account_status_guard", "person_is_active",
     "admin_set_user_status", "is_company_member", "has_company_role", "company_is_writable", "my_contexts",
     "my_pending_invitations", "create_student_profile", "invitation_preview", "accept_invitation",
-    "admin_create_company", "admin_create_invitation",
+    "admin_create_company", "admin_create_company_with_contact", "admin_create_invitation",
     // existing functions changed in Step 1
     "handle_new_user", "set_employer_visibility", "record_consent", "has_admin_role", "admin_set_account_status",
   ];
