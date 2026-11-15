@@ -102,7 +102,7 @@ export function CompanyAdminInvitationPanel({
               {activeInvitation.last_sent_at ? (
                 <Badge tone="success">Email submitted</Badge>
               ) : (
-                <Badge tone="warning">Email not confirmed as sent</Badge>
+                <Badge tone="warning">Email not submitted yet</Badge>
               )}
             </div>
             <h3 className="mt-3 text-lg font-semibold">{activeInvitation.full_name || "First Company Administrator"}</h3>
