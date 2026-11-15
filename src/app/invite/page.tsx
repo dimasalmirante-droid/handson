@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { PageHeader, Panel } from "@/components/dashboard/page-header";
-import { ButtonLink } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
+import { signOutAction } from "@/app/(auth)/actions";
 import { Alert, Badge } from "@/components/ui/feedback";
 import { AcceptCompanyInvitationForm } from "@/components/workspaces/accept-company-invitation";
 import { getCurrentUser, requireUser } from "@/lib/auth/session";
@@ -107,6 +108,9 @@ export default async function InvitationPage({
                   Signed in as <strong className="text-ink">{user.email}</strong>. Make sure this is the account for the invited email address.
                 </p>
                 <AcceptCompanyInvitationForm />
+                <form action={signOutAction}>
+                  <Button type="submit" variant="ghost">Sign out and use another account</Button>
+                </form>
               </div>
             )}
 
