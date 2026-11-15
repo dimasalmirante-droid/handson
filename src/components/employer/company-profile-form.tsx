@@ -129,7 +129,7 @@ export function CompanyProfileForm({
             </div>
             {!editable && (
               <Alert tone="info" className="sm:max-w-sm">
-                You have viewer access. Contact a Company Administrator or Editor to update these details.
+                You have Reviewer access. Contact a Company Administrator to update these details.
               </Alert>
             )}
           </div>
