@@ -27,7 +27,7 @@ export default async function EmployerWorkspacePage({ params }: PageProps<"/empl
           <div className="grid gap-5 md:grid-cols-2">
             <Panel title="Company profile">
               <p className="mb-5 text-sm text-ink-muted">
-                Add your organisation's website, industry, location and official contact details. These details are visible within your workspace and are not published automatically.
+                Add your organisation&apos;s website, industry, location and official contact details. These details are visible within your workspace and are not published automatically.
               </p>
               <Link
                 href={`/employer/${company.id}/profile`}
