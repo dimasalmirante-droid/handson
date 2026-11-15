@@ -10,6 +10,7 @@ export const metadata: Metadata = { title: "Create your account" };
 export default async function RegisterPage({ searchParams }: PageProps<"/register">) {
   const sp = await searchParams;
   const nextParam = typeof sp.next === "string" ? safeNextPath(sp.next, "") : "";
+  const invitationJoin = nextParam === "/invite";
   const docs = await getCurrentLegalDocuments();
   const legal: RegisterLegal =
     docs.terms && docs.privacy
@@ -23,13 +24,15 @@ export default async function RegisterPage({ searchParams }: PageProps<"/registe
 
   return (
     <div>
-      <h1 className="text-[36px] tracking-[-0.03em]">Create your account</h1>
+      <h1 className="text-[36px] tracking-[-0.03em]">{invitationJoin ? "Create your Handson account" : "Create your account"}</h1>
       <p className="mt-2 text-ink-muted">
-        Build one professional profile for internships, traineeships and first jobs. Your profile is private by default.
+        {invitationJoin
+          ? "Create an account to accept your employer workspace invitation."
+          : "Build one professional profile for internships, traineeships and first jobs. Your profile is private by default."}
       </p>
 
       <div className="mt-6 flex flex-col gap-5">
-        <GoogleForm label="Continue with Google" intent="student" next={nextParam || undefined} />
+        <GoogleForm label="Continue with Google" intent={invitationJoin ? undefined : "student"} next={nextParam || undefined} />
         {legal ? (
           <p className="-mt-2 text-center text-xs text-ink-muted">
             After signing in with Google you will be asked to accept the{" "}
