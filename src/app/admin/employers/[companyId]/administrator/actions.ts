@@ -143,7 +143,7 @@ export async function createFirstCompanyAdminInvitation(
   return {
     ok: true,
     message: recorded
-      ? `Invitation email sent to ${parsed.data.email}. The link is valid for seven days.`
+      ? `Resend accepted the invitation email request for ${parsed.data.email}. The link is valid for seven days.`
       : "The invitation email was sent, but its delivery record could not be updated. Refresh this page before retrying.",
   };
 }
@@ -209,7 +209,7 @@ export async function resendFirstCompanyAdminInvitation(
   return {
     ok: true,
     message: recorded
-      ? `A fresh invitation email was sent to ${invitation.email}. The previous link no longer works.`
+      ? `Resend accepted a fresh invitation email request for ${invitation.email}. The previous link no longer works.`
       : "The new invitation email was sent, but its delivery record could not be updated. Refresh before retrying.",
   };
 }
