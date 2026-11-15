@@ -5,7 +5,7 @@ import { createCompany } from "@/app/admin/actions";
 import { Button } from "@/components/ui/button";
 import { Alert, Badge } from "@/components/ui/feedback";
 import { Field, Input, Textarea } from "@/components/ui/field";
-import { suggestCompanySlug } from "@/lib/companies/validation";
+import { suggestCompanySlug } from "@/lib/companies/slug";
 
 type CompanyStatus = "onboarding" | "active" | "suspended";
 
