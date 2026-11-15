@@ -9,7 +9,7 @@
 -- with a newly rotated token without weakening invitation acceptance.
 
 -- Create the first Company Admin invitation for a company. Only one pending
--- or accepted Company Admin can exist at a time. An expired pending record is
+-- first-admin invitation or current company_admin membership can exist at a time. An expired pending record is
 -- marked expired before a replacement invitation is created.
 create or replace function public.admin_invite_first_company_admin(
   p_company uuid,
