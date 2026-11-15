@@ -1,6 +1,6 @@
 # Module 2 · Employer Management
 
-Design record for the employer module. **Step 1 (foundation), Step 2.1 (the admin employer directory and company registration), first Company Admin invitation, and the internal company profile are implemented.** Team management, the public Employer Page, Page Studio and managed talent campaigns are later steps.
+Design record for the employer module. **Step 1 (foundation), Step 2.1 (the admin employer directory and company registration), first Company Admin invitation, internal company profile, and Step 2.2 (company team management) are implemented.** The public Employer Page, Page Studio and managed talent campaigns are later steps.
 
 ## Admin employer directory (Step 2.1)
 
