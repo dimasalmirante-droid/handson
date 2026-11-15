@@ -22,6 +22,34 @@ test.describe("public pages @mobile", () => {
     await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
     await expectNoHorizontalScroll(page);
   });
+
+  test("an invitation registration preserves the invite destination without opting into a student profile", async ({ page }) => {
+    await page.goto("/register?next=%2Finvite");
+
+    const googleForm = page.locator("form").filter({
+      has: page.getByRole("button", { name: "Continue with Google" }),
+    });
+    await expect(googleForm.locator('input[name="next"]')).toHaveValue("/invite");
+    await expect(googleForm.locator('input[name="intent"]')).toHaveCount(0);
+
+    const emailForm = page.locator("form").filter({
+      has: page.getByRole("button", { name: "Create account" }),
+    });
+    await expect(emailForm.locator('input[name="next"]')).toHaveValue("/invite");
+  });
+
+  test("an invitation can be opened before sign-in", async ({ page }) => {
+    await page.goto("/invite");
+    await expect(page.getByRole("heading", { name: "Your Handson invitation" })).toBeVisible();
+    await expect(page.getByText(/could not find an invitation in this browser/i)).toBeVisible();
+    await expectNoHorizontalScroll(page);
+  });
+
+  test("malformed invitation tokens do not enter the acceptance flow", async ({ page }) => {
+    await page.goto("/invite/not-a-valid-token");
+    await expect(page).toHaveURL(/\/invite\?error=invalid$/);
+    await expect(page.getByText(/invitation link is not valid/i)).toBeVisible();
+  });
 });
 
 test.describe("registration validation", () => {
