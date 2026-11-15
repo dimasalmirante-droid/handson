@@ -15,7 +15,7 @@ export async function updateCompanyProfile(
   formData: FormData,
 ): Promise<CompanyProfileActionState> {
   if (!UUID.test(companyId)) return { ok: false, message: "Invalid company." };
-  await requireCompanyRole(companyId, "editor");
+  await requireCompanyRole(companyId, "company_admin");
 
   const parsed = companyProfileSchema.safeParse({
     name: String(formData.get("name") ?? ""),
