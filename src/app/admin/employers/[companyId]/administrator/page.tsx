@@ -97,7 +97,7 @@ export default async function CompanyAdministratorPage({
           </p>
           {administratorError || invitationError ? (
             <Alert tone="danger">
-              We could not verify this employer's administrator or invitation status. Refresh the page before making changes, so we do not create a duplicate invitation.
+              We could not verify the administrator or invitation status for this employer. Refresh the page before making changes, so we do not create a duplicate invitation.
             </Alert>
           ) : (
             <CompanyAdminInvitationPanel
