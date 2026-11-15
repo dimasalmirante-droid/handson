@@ -18,7 +18,7 @@ export const companyRegistrationSchema = z.object({
     .toLowerCase()
     .max(320, "The official company email must be 320 characters or fewer.")
     .refine(
-      (value) => value === "" || /^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(value),
+      (value) => value === "" || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value),
       "Enter a valid official company email address.",
     )
     .transform((value) => value || null)
