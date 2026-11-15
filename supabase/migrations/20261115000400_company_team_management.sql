@@ -405,7 +405,7 @@ set search_path = ''
 as $$
 declare
   cstatus public.company_status;
-  current_role public.company_role;
+  v_current_role public.company_role;
   admin_count integer;
 begin
   if p_role not in ('reviewer', 'company_admin') then
@@ -426,18 +426,18 @@ begin
     raise exception 'This company workspace is suspended' using errcode = '22023';
   end if;
 
-  select m.role into current_role
+  select m.role into v_current_role
     from public.company_members m
    where m.company_id = p_company and m.user_id = p_user
    for update;
   if not found then
     raise exception 'Team member not found' using errcode = 'P0002';
   end if;
-  if current_role = p_role then
+  if v_current_role = p_role then
     return;
   end if;
 
-  if current_role = 'company_admin' and p_role <> 'company_admin' then
+  if v_current_role = 'company_admin' and p_role <> 'company_admin' then
     select count(*)::int into admin_count
       from public.company_members m
      where m.company_id = p_company and m.role = 'company_admin';
@@ -457,7 +457,7 @@ begin
     'company_members',
     p_user::text,
     p_company,
-    jsonb_build_object('old_role', current_role, 'new_role', p_role)
+    jsonb_build_object('old_role', v_current_role, 'new_role', p_role)
   );
 end;
 $$;
@@ -471,7 +471,7 @@ set search_path = ''
 as $$
 declare
   cstatus public.company_status;
-  current_role public.company_role;
+  v_current_role public.company_role;
   admin_count integer;
 begin
   select c.status into cstatus
@@ -488,7 +488,7 @@ begin
     raise exception 'This company workspace is suspended' using errcode = '22023';
   end if;
 
-  select m.role into current_role
+  select m.role into v_current_role
     from public.company_members m
    where m.company_id = p_company and m.user_id = p_user
    for update;
@@ -496,7 +496,7 @@ begin
     raise exception 'Team member not found' using errcode = 'P0002';
   end if;
 
-  if current_role = 'company_admin' then
+  if v_current_role = 'company_admin' then
     select count(*)::int into admin_count
       from public.company_members m
      where m.company_id = p_company and m.role = 'company_admin';
@@ -512,7 +512,7 @@ begin
     'company_members',
     p_user::text,
     p_company,
-    jsonb_build_object('role', current_role)
+    jsonb_build_object('role', v_current_role)
   );
 
   delete from public.company_members
