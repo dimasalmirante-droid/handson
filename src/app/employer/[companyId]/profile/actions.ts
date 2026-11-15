@@ -37,7 +37,7 @@ export async function updateCompanyProfile(
   }
 
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("company_update_profile", {
+  const { error } = await supabase.rpc("company_update_profile", {
     p_company: companyId,
     p_name: parsed.data.name,
     p_contact_email: parsed.data.contactEmail,
