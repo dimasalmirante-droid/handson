@@ -87,7 +87,7 @@ export default async function InvitationPage({
         {invitation && (
           <div className="flex flex-col gap-5">
             <div>
-              <p className="text-sm text-ink-muted">You're invited to join</p>
+              <p className="text-sm text-ink-muted">You&apos;re invited to join</p>
               <h2 className="mt-1 text-2xl font-semibold">{invitation.company_name}</h2>
               <div className="mt-3 flex flex-wrap gap-2">
                 <Badge tone="indigo">{roleLabel[invitation.role]}</Badge>
