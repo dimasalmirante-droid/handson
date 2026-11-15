@@ -12,7 +12,6 @@ export const metadata: Metadata = { title: "Company administrator" };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-type Company = { id: string; name: string; slug: string; status: string };
 type CompanyAdminMember = { full_name: string | null; job_title: string | null; created_at: string };
 type Invitation = {
   id: string;
@@ -76,7 +75,7 @@ export default async function CompanyAdministratorPage({
     <>
       <PageHeader
         title="Company administrator"
-        lead="Appoint the first person authorised to manage this employer's Handson workspace."
+        lead="Appoint the first person authorised to manage the employer&apos;s Handson workspace."
         action={<ButtonLink href="/admin/employers" variant="ghost">← Back to employers</ButtonLink>}
       />
       <div className="flex flex-col gap-6">
