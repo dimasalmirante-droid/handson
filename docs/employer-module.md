@@ -18,8 +18,8 @@ Design record for the employer module. **Step 1 (foundation), Step 2.1 (the admi
 
 - `/employer/<company-id>/profile` is an internal profile for the employer workspace. It is not the public Employer Page and is not published automatically.
 - The profile contains the company name, official contact email, description, website, industry, country, province/region, city and business phone.
+- The profile opens in a read-only view that presents the saved details. Company Administrators and Editors can choose **Edit company profile** to enter edit mode; **Save changes** returns them to the read-only view with a confirmation, while **Cancel** discards unsaved edits. Viewers can read the profile but cannot edit it.
 - The permanent slug is displayed but cannot be changed from the profile form. Changing a company name does not change its slug.
-- Company Administrators and Editors can update the profile; Viewers can read it only.
 - Updates use `company_update_profile()`, which checks membership and role again in the database, refuses suspended companies, and records an audit event with the list of changed fields (not field values).
 - Profile fields are visible only to members of that company and Handson administrators. The public Employer Page, its approval process and publication history remain a separate future feature.
 

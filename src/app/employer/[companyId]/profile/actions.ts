@@ -59,5 +59,5 @@ export async function updateCompanyProfile(
 
   revalidatePath(`/employer/${companyId}`);
   revalidatePath(`/employer/${companyId}/profile`);
-  return { ok: true, message: "Company profile saved." };
+  return { ok: true, message: "Company profile updated successfully." };
 }
