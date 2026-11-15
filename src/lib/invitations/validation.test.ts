@@ -57,3 +57,40 @@ describe("firstCompanyAdminInvitationSchema", () => {
     }).success).toBe(false);
   });
 });
+
+
+describe("companyTeamInvitationSchema", () => {
+  it("normalises the email and trims the colleague details", async () => {
+    const { companyTeamInvitationSchema } = await import("./validation");
+    expect(companyTeamInvitationSchema.parse({
+      email: "  TEAM.LEAD@Example.COM ",
+      fullName: "  Ana Cossa  ",
+      jobTitle: "  People Manager  ",
+      role: "reviewer",
+    })).toEqual({
+      email: "team.lead@example.com",
+      fullName: "Ana Cossa",
+      jobTitle: "People Manager",
+      role: "reviewer",
+    });
+  });
+
+  it("accepts Company Administrator and makes the job title optional", async () => {
+    const { companyTeamInvitationSchema } = await import("./validation");
+    expect(companyTeamInvitationSchema.parse({
+      email: "admin@example.com",
+      fullName: "Joao Muianga",
+      jobTitle: " ",
+      role: "company_admin",
+    }).jobTitle).toBeNull();
+  });
+
+  it("rejects invalid roles, emails and incomplete names", async () => {
+    const { companyTeamInvitationSchema } = await import("./validation");
+    const base = { email: "ana@example.com", fullName: "Ana Cossa", jobTitle: "", role: "reviewer" };
+    expect(companyTeamInvitationSchema.safeParse({ ...base, role: "editor" }).success).toBe(false);
+    expect(companyTeamInvitationSchema.safeParse({ ...base, email: "not-an-email" }).success).toBe(false);
+    expect(companyTeamInvitationSchema.safeParse({ ...base, fullName: "A" }).success).toBe(false);
+    expect(companyTeamInvitationSchema.safeParse({ ...base, fullName: "A".repeat(201) }).success).toBe(false);
+  });
+});
