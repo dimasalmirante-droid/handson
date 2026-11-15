@@ -37,6 +37,12 @@ export async function acceptCompanyInvitation(
     return { message: "The invitation could not be accepted. Please try again or contact Handson support." };
   }
 
-  store.delete("hs_company_invitation");
+  store.set("hs_company_invitation", "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/invite",
+    maxAge: 0,
+  });
   redirect("/workspaces");
 }
