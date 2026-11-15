@@ -15,15 +15,22 @@ const optionalWebsite = z
   .trim()
   .transform((value) => value || null)
   .refine(
-    (value) => value === null || (value.length <= 300 && /^https:\/\//i.test(value)),
-    "Enter a website address starting with https://.",
+    (value) => {
+      if (value === null || value.length > 300) return value === null;
+      try {
+        return new URL(value).protocol === "https:";
+      } catch {
+        return false;
+      }
+    },
+    "Enter a valid HTTPS website address.",
   );
 
 const optionalPhone = z
   .string()
   .trim()
   .transform((value) => value || null)
-  .refine((value) => value === null || /^\+[1-9][0-9]{7,14}$/.test(value), "Enter an international phone number, for example +258 84 123 4567 without spaces.");
+  .refine((value) => value === null || /^\+[1-9][0-9]{7,14}$/.test(value), "Enter an international phone number without spaces, for example +258841234567.");
 
 const optionalCountryCode = z
   .string()
