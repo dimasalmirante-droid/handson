@@ -4,7 +4,7 @@ import Link from "next/link";
 import { CompanyAdminInvitationPanel } from "@/components/admin/company-admin-invitation";
 import { PageHeader, Panel } from "@/components/dashboard/page-header";
 import { ButtonLink } from "@/components/ui/button";
-import { Badge } from "@/components/ui/feedback";
+import { Alert, Badge } from "@/components/ui/feedback";
 import { requireAdmin } from "@/lib/auth/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -96,13 +96,19 @@ export default async function CompanyAdministratorPage({
           <p className="mb-5 max-w-2xl text-sm text-ink-muted">
             The invited person uses their own Handson account. Handson will not create a duplicate account or grant access until the person accepts the invitation using the verified email address it was sent to.
           </p>
-          <CompanyAdminInvitationPanel
-            companyId={company.id}
-            companyStatus={company.status}
-            emailConfigured={Boolean(process.env.RESEND_API_KEY)}
-            currentAdmin={currentAdmin}
-            invitation={invitation}
-          />
+          {administratorError || invitationError ? (
+            <Alert tone="danger">
+              We could not verify this employer's administrator or invitation status. Refresh the page before making changes, so we do not create a duplicate invitation.
+            </Alert>
+          ) : (
+            <CompanyAdminInvitationPanel
+              companyId={company.id}
+              companyStatus={company.status}
+              emailConfigured={Boolean(process.env.RESEND_API_KEY)}
+              currentAdmin={currentAdmin}
+              invitation={invitation}
+            />
+          )}
         </Panel>
 
         <p className="text-sm text-ink-muted">
