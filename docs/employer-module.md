@@ -6,11 +6,11 @@ Design record for the employer module. **Step 1 (foundation) is implemented. Ste
 
 - `/admin/employers` is available to Handson administrators and super administrators; reviewers do not have access.
 - The directory reads company records through the existing administrator Row Level Security policy.
-- Registering an employer calls `admin_create_company()`. The database records the company and its audit event; its initial status is `onboarding`.
+- Registering an employer calls `admin_create_company_with_contact()`. The optional official company email is trimmed, lower-cased and saved to `companies.contact_email`; a blank value remains `null`. The database records the company and its audit events; its initial status is `onboarding`.
 - The optional setup note is stored in `company_admin_notes`, which remains internal to Handson administrators.
 - The slug is reserved for the employer's future permanent public page. Registering a company does not publish a page or activate its workspace.
 - The companies table has an optional `contact_email` for the organisation's official correspondence address (for example, a shared HR inbox). It is company data, not a sign-in identity. Individual representatives must use their own Handson accounts and company memberships.
-- The database now exposes the admin-only `admin_create_company_with_contact()` function for registration with that address. The existing `admin_create_company()` function remains available for compatibility; the admin form will be connected to the new function in a later application step.
+- The admin registration form captures the optional shared company email and calls the admin-only `admin_create_company_with_contact()` function. The existing `admin_create_company()` function remains available for compatibility.
 - This step does not invite employer contacts or create campaigns. Contract execution remains outside the application for now; a separate contract record and lifecycle will be designed before contract tracking is introduced.
 
 
