@@ -105,15 +105,15 @@ describe("workspaceKeyForPath", () => {
 });
 
 describe("/workspaces view", () => {
-  it("offers a student profile, alongside a pending invitation, to anyone without one", () => {
+  it("prioritises a pending employer invitation and hides the student profile prompt", () => {
     expect(workspacesView({ workspaces: [], hasStudentProfile: false, pendingInvitations: 1 })).toEqual({
-      empty: true, showInvitations: true, showCreateStudentProfile: true,
+      empty: true, showInvitations: true, showCreateStudentProfile: false,
     });
   });
 
-  it("offers it to employer-only users too, and not to students", () => {
+  it("does not prompt employer-only users to create a student profile, while student-only users keep their profile", () => {
     const employer = listWorkspaces(ctx({ companies: [company(CO1)] }));
-    expect(workspacesView({ workspaces: employer, hasStudentProfile: false, pendingInvitations: 0 }).showCreateStudentProfile).toBe(true);
+    expect(workspacesView({ workspaces: employer, hasStudentProfile: false, pendingInvitations: 0 }).showCreateStudentProfile).toBe(false);
     const s = listWorkspaces(ctx({ student: student() }));
     expect(workspacesView({ workspaces: s, hasStudentProfile: true, pendingInvitations: 0 })).toEqual({
       empty: false, showInvitations: false, showCreateStudentProfile: false,

@@ -38,7 +38,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
 
       <p className="mt-8 text-[15px] text-ink-muted">
         New to Handson?{" "}
-        <Link href="/register" className="font-semibold text-indigo hover:underline">
+        <Link href={next ? `/register?next=${encodeURIComponent(next)}` : "/register"} className="font-semibold text-indigo hover:underline">
           Create an account
         </Link>
       </p>

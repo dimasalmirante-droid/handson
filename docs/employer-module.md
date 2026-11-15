@@ -1,6 +1,6 @@
 # Module 2 · Employer Management
 
-Design record for the employer module. **Step 1 (foundation) and Step 2.1 (the admin employer directory and company registration) are implemented. This branch adds the database lifecycle for the first Company Admin invitation; the invitation screen, email delivery and acceptance page are a separate application step.** The public Employer Page, Page Studio and managed talent campaigns are later steps.
+Design record for the employer module. **Step 1 (foundation) and Step 2.1 (the admin employer directory and company registration) are implemented. This branch adds the first Company Admin invitation, email delivery and acceptance experience.** The public Employer Page, Page Studio and managed talent campaigns are later steps.
 
 ## Admin employer directory (Step 2.1)
 
@@ -49,7 +49,9 @@ The student marker can only add a student profile for the person themselves; it 
 
 - **Token:** 32 random bytes (base64url). Only its SHA-256 hash is stored. The application issues a 7-day token; the database accepts invitation lifetimes from 1 hour to 30 days. Resending rotates the hash, immediately invalidating the previous link.
 - **First Company Admin:** `admin_invite_first_company_admin()` is Handson-admin-only. It allows one pending first-admin invitation or one accepted `company_admin` membership per company. An expired pending first-admin invitation is marked `expired` before a replacement is created. It does not create an Auth user, company member or duplicate account.
-- **Delivery tracking:** after the email provider confirms delivery, `admin_mark_invitation_sent()` records `last_sent_at`, increments `send_count` and audits the event. Failed sends are not counted.
+- **Delivery tracking:** after Resend accepts the email request, `admin_mark_invitation_sent()` records `last_sent_at`, increments `send_count` and audits the event. A failed API request is not counted; provider acceptance does not guarantee that the recipient's mailbox accepts or displays the message.
+- **Admin interface:** `/admin/company-admins` lists employers and their first Company Administrator. `/admin/employers/<company-id>/administrator` appoints, resends or revokes the first-admin invitation. Only Handson admins and super admins can access these routes.
+- **Email delivery:** employer invitation messages use the Resend API from the server, with sender `Handson <hello@handson.cloud>`. Configure the server-only `RESEND_API_KEY` in Vercel Preview and Production after verifying the sender/domain in Resend. No Supabase service-role key is used by this flow.
 - **Resend and revoke:** `admin_resend_invitation()` rotates the token for a pending, unexpired invitation and clears `last_sent_at`; `admin_revoke_invitation()` revokes a pending invitation and records who revoked it. Both are audited. A revoked or rotated token can no longer be accepted.
 - **Uniqueness:** at most one pending invitation per company and email (case-insensitive; stored lower-case). Creating an invitation marks an expired pending one `expired` first, so expiry never blocks re-invitation. Inviting a current member is refused.
 - **`accept_invitation(token_hash)`:** in one transaction, with the invitation row locked:
@@ -59,10 +61,12 @@ The student marker can only add a student profile for the person themselves; it 
 
   It then adds the membership, marks the invitation accepted and audits the acceptance.
 - **Carrying the token through sign-up (Step 3):**
-  - `/invite/<token>` stores the token in an httpOnly, Secure, SameSite=Lax cookie with `Path=/invite`, then redirects to `/invite`.
+  - `/invite/<token>` hashes the token immediately, stores only the hash in an httpOnly, Secure, SameSite=Lax cookie with `Path=/invite`, then redirects to `/invite`.
+  - `/invite` calls the public `invitation_preview()` function, which exposes only the company, role, masked email, expiry and status. An invited person can create an account or log in using Google or email/password.
   - Google returns to `/auth/callback?next=/invite`; the callback does not read the cookie and simply redirects to `/invite`, where the cookie is available.
   - Email verification links return to `/auth/confirm?next=/invite`.
-  - Acceptance happens only through a POST on `/invite`.
+  - Acceptance happens only through a Server Action on `/invite`. The action reads the hash cookie and calls `accept_invitation()`; the database checks account status, verified matching email, expiry and company status before creating membership.
+  - Invitation account registration does not add the `signup_intent=student` marker. The user can create a student profile later, independently, from `/workspaces`.
 - The first Company Admin is invited with the `company_admin` role; after acceptance, the existing account can open the employer workspace while the company remains in `onboarding` status. The first-admin invitation itself does not activate the company or create a separate login.
 
 ## Legal documents

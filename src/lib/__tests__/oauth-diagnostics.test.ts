@@ -34,6 +34,12 @@ describe("originFromHeaders precedence", () => {
     const origin = originFromHeaders(h({ "x-forwarded-host": "preview.vercel.app", "x-forwarded-proto": "https" }));
     expect(new URL(googleCallbackUrl(origin, { intent: "student" })).host).toBe("preview.vercel.app");
   });
+  it("preserves the employer invitation destination without adding student signup intent", () => {
+    const callback = new URL(googleCallbackUrl("https://preview.vercel.app", { next: "/invite" }));
+    expect(callback.pathname).toBe("/auth/callback");
+    expect(callback.searchParams.get("next")).toBe("/invite");
+    expect(callback.searchParams.has("intent")).toBe(false);
+  });
 });
 
 describe("describeRequest", () => {

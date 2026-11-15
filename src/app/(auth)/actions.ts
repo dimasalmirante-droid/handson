@@ -69,7 +69,14 @@ export async function registerAction(_prev: FormState, formData: FormData): Prom
       // signup_intent marks a student registration: the sign-up trigger then
       // creates a student profile even if an employer invitation is pending.
       // It can only add a profile for the person themselves; it grants nothing.
-      data: { first_name: firstName, surname, signup_intent: "student", ...metadataLegal },
+      data: {
+        first_name: firstName,
+        surname,
+        // Invitation registration does not opt into a student profile. The
+        // database grants no company access until the invitation is accepted.
+        ...(next === "/invite" ? {} : { signup_intent: "student" }),
+        ...metadataLegal,
+      },
     },
   });
 

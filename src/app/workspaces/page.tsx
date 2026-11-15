@@ -33,7 +33,13 @@ export default async function WorkspacesPage() {
       <div className="mx-auto max-w-3xl">
         <PageHeader
           title="Your workspaces"
-          lead={view.empty ? "Your account is ready. Choose how you want to use Handson." : "Choose where you want to go."}
+          lead={
+            view.showInvitations && view.empty
+              ? "Your account is ready. Open the invitation link from your email to join the employer workspace."
+              : view.empty
+                ? "Your account is ready. Choose how you want to use Handson."
+                : "Choose where you want to go."
+          }
         />
         <div className="flex flex-col gap-6">
           {workspaces.length > 0 && (
@@ -82,7 +88,6 @@ export default async function WorkspacesPage() {
             <Panel title="Student profile">
               <p className="mb-4 text-[15px] text-ink-muted">
                 Build your profile to find internships, traineeships and first jobs.
-                {view.showInvitations && " This does not affect your invitation: you can still accept it afterwards."}
               </p>
               <CreateStudentProfileForm />
             </Panel>

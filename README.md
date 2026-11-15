@@ -75,7 +75,7 @@ Market defaults (Mozambique, +258, MZN, Africa/Maputo) are in `src/lib/site.ts`.
 
 ## Environment variables
 
-See `.env.example`. The Supabase service-role key is server-only and must never be exposed to the browser.
+See `.env.example`. The Supabase service-role key and `RESEND_API_KEY` are server-only and must never be exposed to the browser. Set `RESEND_API_KEY` in Vercel Preview and Production to enable employer invitation emails.
 
 ## Authentication
 
@@ -202,6 +202,7 @@ select id, 'super_admin', 'Initial administrator' from auth.users where email = 
 1. Add domain `handson.cloud` in Resend and create the DNS records it lists in Hostinger. Resend uses the `send.` subdomain for its MX and SPF records, so the existing mailbox for hello@handson.cloud is not affected.
 2. Create an API key with sending access.
 3. Supabase SMTP settings: host `smtp.resend.com`, port `465`, username `resend`, password = the API key, sender email `hello@handson.cloud`, sender name `Handson`.
+4. Employer invitation emails are sent by the application through the Resend HTTP API. Add the same sending key as the server-only `RESEND_API_KEY` variable in Vercel Preview and Production. The application sends from `Handson <hello@handson.cloud>`; verify this sender/domain in Resend first. This is separate from Supabase Auth SMTP configuration.
 
 ## Testing
 
@@ -219,4 +220,4 @@ GitHub Actions (`.github/workflows/ci.yml`) runs lint, type-check, unit and data
 
 Deployed on Vercel from the `main` branch; `app.handson.cloud` points to Vercel via a CNAME in Hostinger.
 
-Vercel environment variables (Production and Preview): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_APP_URL` (`https://app.handson.cloud`). Go-live checklist: [docs/go-live.md](docs/go-live.md).
+Vercel environment variables: `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (Production uses production Supabase; Preview uses staging). `NEXT_PUBLIC_APP_URL` is set to `https://app.handson.cloud` in Production. The server-only `RESEND_API_KEY` is required in Preview and Production for employer invitation emails. Go-live checklist: [docs/go-live.md](docs/go-live.md).
