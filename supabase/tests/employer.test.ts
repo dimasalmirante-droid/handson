@@ -979,6 +979,8 @@ describe("database function security", () => {
     "my_pending_invitations", "create_student_profile", "invitation_preview", "accept_invitation",
     "admin_create_company", "admin_create_company_with_contact", "admin_create_invitation",
     "admin_invite_first_company_admin", "admin_resend_invitation", "admin_mark_invitation_sent", "admin_revoke_invitation",
+    "company_admin_list_team", "company_invite_member", "company_resend_invitation", "company_mark_invitation_sent",
+    "company_revoke_invitation", "company_change_member_role", "company_remove_member",
     // existing functions changed in Step 1
     "handle_new_user", "set_employer_visibility", "record_consent", "has_admin_role", "admin_set_account_status",
   ];
@@ -1175,5 +1177,237 @@ describe("company contract register", () => {
     await expect(
       as(db, ADMIN, "select public.admin_terminate_company_contract($1, $2)", [id, "Duplicate termination."]),
     ).rejects.toThrow(/already been terminated/i);
+  });
+});
+
+
+// ---------------------------------------------------------------------------
+describe("company team management", () => {
+  async function firstAdmin(company: string, email: string) {
+    const inv = await inviteFirstCompanyAdmin(company, email, "Company Owner", "People Manager");
+    const id = await signUp(db, { email, provider: "google" });
+    await as(db, id, "select public.accept_invitation($1)", [inv.hash]);
+    return id;
+  }
+
+  async function inviteAsCompanyAdmin(
+    company: string,
+    actor: string,
+    email: string,
+    role = "reviewer",
+  ) {
+    const token = newToken();
+    const { rows } = await as<{ id: string }>(
+      db,
+      actor,
+      "select public.company_invite_member($1, $2, $3::public.company_role, $4, $5, $6, $7) as id",
+      [company, email, role, "Invited Colleague", "Talent Partner", token.hash, inDays(7)],
+    );
+    return { ...token, id: rows[0].id };
+  }
+
+  it("lets a Company Administrator invite Reviewers and additional Company Administrators without creating accounts", async () => {
+    const company = await createCompany("Team Invite Lda", "team-invite");
+    const owner = await firstAdmin(company, "team.owner@example.com");
+
+    const reviewer = await inviteAsCompanyAdmin(company, owner, "team.reviewer@example.com", "reviewer");
+    const admin = await inviteAsCompanyAdmin(company, owner, "team.admin@example.com", "company_admin");
+
+    const { rows } = await db.query<{ email: string; role: string; status: string; full_name: string; job_title: string }>(
+      "select email::text, role, status, full_name, job_title from public.company_invitations where company_id = $1 and status = 'pending' order by email",
+      [company],
+    );
+    expect(rows).toEqual([
+      { email: "team.admin@example.com", role: "company_admin", status: "pending", full_name: "Invited Colleague", job_title: "Talent Partner" },
+      { email: "team.reviewer@example.com", role: "reviewer", status: "pending", full_name: "Invited Colleague", job_title: "Talent Partner" },
+    ]);
+
+    const users = await db.query(
+      "select id from auth.users where email in ('team.reviewer@example.com', 'team.admin@example.com')",
+    );
+    const members = await db.query("select user_id from public.company_members where company_id = $1", [company]);
+    expect(users.rows).toHaveLength(0);
+    expect(members.rows).toHaveLength(1);
+    expect(reviewer.id).not.toBe(admin.id);
+    expect(reviewer.hash).not.toBe(admin.hash);
+  });
+
+  it("restricts team invitation and management to Company Administrators, not Handson admins or Reviewers", async () => {
+    const company = await createCompany("Team Access Lda", "team-access");
+    const owner = await firstAdmin(company, "team.access.owner@example.com");
+    const reviewerInvitation = await inviteAsCompanyAdmin(company, owner, "team.access.reviewer@example.com");
+    const reviewer = await signUp(db, { email: "team.access.reviewer@example.com", provider: "google" });
+    await as(db, reviewer, "select public.accept_invitation($1)", [reviewerInvitation.hash]);
+
+    await expectDenied(
+      db,
+      reviewer,
+      "select public.company_invite_member($1, 'blocked@example.com', 'reviewer', null, null, $2, $3)",
+      [company, newToken().hash, inDays(7)],
+      /Not authorised/,
+    );
+    await expectDenied(
+      db,
+      ADMIN,
+      "select public.company_invite_member($1, 'handson.admin@example.com', 'reviewer', null, null, $2, $3)",
+      [company, newToken().hash, inDays(7)],
+      /Not authorised/,
+    );
+    await expectDenied(db, reviewer, "select * from public.company_admin_list_team($1)", [company], /Not authorised/);
+    await expectDenied(db, ADMIN, "select * from public.company_admin_list_team($1)", [company], /Not authorised/);
+
+    const ownInvitations = await as(db, reviewer, "select id from public.company_invitations where company_id = $1", [company]);
+    expect(ownInvitations.rows).toHaveLength(0);
+    const team = await as<{ email: string; role: string }>(
+      db,
+      owner,
+      "select email, role from public.company_admin_list_team($1)",
+      [company],
+    );
+    expect(team.rows).toEqual([
+      { email: "team.access.owner@example.com", role: "company_admin" },
+      { email: "team.access.reviewer@example.com", role: "reviewer" },
+    ]);
+  });
+
+  it("rotates invitation links, records successful sends, and revokes access", async () => {
+    const company = await createCompany("Team Lifecycle Lda", "team-lifecycle");
+    const owner = await firstAdmin(company, "team.lifecycle.owner@example.com");
+    const first = await inviteAsCompanyAdmin(company, owner, "team.lifecycle.invitee@example.com");
+
+    const firstCount = await as<{ count: number }>(
+      db,
+      owner,
+      "select public.company_mark_invitation_sent($1) as count",
+      [first.id],
+    );
+    expect(firstCount.rows[0].count).toBe(1);
+
+    const next = newToken();
+    await as(db, owner, "select public.company_resend_invitation($1, $2, $3)", [first.id, next.hash, inDays(7)]);
+    const afterResend = await db.query<{ token_hash: string; send_count: number; last_sent_at: string | null }>(
+      "select token_hash, send_count, last_sent_at from public.company_invitations where id = $1",
+      [first.id],
+    );
+    expect(afterResend.rows[0]).toEqual({ token_hash: next.hash, send_count: 1, last_sent_at: null });
+
+    const secondCount = await as<{ count: number }>(
+      db,
+      owner,
+      "select public.company_mark_invitation_sent($1) as count",
+      [first.id],
+    );
+    expect(secondCount.rows[0].count).toBe(2);
+
+    const invitee = await signUp(db, { email: "team.lifecycle.invitee@example.com", provider: "google" });
+    await expectDenied(db, invitee, "select public.accept_invitation($1)", [first.hash], /not found/);
+    await as(db, owner, "select public.company_revoke_invitation($1)", [first.id]);
+    await expectDenied(db, invitee, "select public.accept_invitation($1)", [next.hash], /withdrawn/);
+
+    const audit = await db.query<{ action: string }>(
+      "select action from public.audit_logs where target_id = $1 order by id",
+      [first.id],
+    );
+    expect(audit.rows.map((row) => row.action)).toEqual([
+      "invitation.created",
+      "invitation.email_sent",
+      "invitation.resent",
+      "invitation.email_sent",
+      "invitation.revoked",
+    ]);
+  });
+
+  it("prevents duplicate, invalid-role and suspended-company invitations", async () => {
+    const company = await createCompany("Team Validation Lda", "team-validation");
+    const owner = await firstAdmin(company, "team.validation.owner@example.com");
+    const existing = await inviteAsCompanyAdmin(company, owner, "team.validation.existing@example.com");
+
+    await expectDenied(
+      db,
+      owner,
+      "select public.company_invite_member($1, 'TEAM.VALIDATION.EXISTING@example.com', 'reviewer', null, null, $2, $3)",
+      [company, newToken().hash, inDays(7)],
+      /already pending/,
+    );
+    await expectDenied(
+      db,
+      owner,
+      "select public.company_invite_member($1, 'invalid.role@example.com', 'editor', null, null, $2, $3)",
+      [company, newToken().hash, inDays(7)],
+      /Choose Company Administrator or Reviewer/,
+    );
+    await expectDenied(
+      db,
+      owner,
+      "select public.company_invite_member($1, 'invalid.email', 'reviewer', null, null, $2, $3)",
+      [company, newToken().hash, inDays(7)],
+      /valid email/,
+    );
+    await setCompanyStatus(company, "suspended");
+    await expectDenied(
+      db,
+      owner,
+      "select public.company_invite_member($1, 'suspended.invite@example.com', 'reviewer', null, null, $2, $3)",
+      [company, newToken().hash, inDays(7)],
+      /suspended/,
+    );
+    expect(existing.id).toBeTruthy();
+    await setCompanyStatus(company, "onboarding");
+  });
+
+  it("allows role changes and removal while protecting the final Company Administrator", async () => {
+    const company = await createCompany("Team Roles Lda", "team-roles");
+    const owner = await firstAdmin(company, "team.roles.owner@example.com");
+    const reviewerInvitation = await inviteAsCompanyAdmin(company, owner, "team.roles.reviewer@example.com");
+    const reviewer = await signUp(db, { email: "team.roles.reviewer@example.com", provider: "google" });
+    await as(db, reviewer, "select public.accept_invitation($1)", [reviewerInvitation.hash]);
+
+    await as(db, owner, "select public.company_change_member_role($1, $2, 'company_admin')", [company, reviewer]);
+    const promoted = await db.query<{ role: string }>(
+      "select role from public.company_members where company_id = $1 and user_id = $2",
+      [company, reviewer],
+    );
+    expect(promoted.rows[0].role).toBe("company_admin");
+
+    await as(db, reviewer, "select public.company_change_member_role($1, $2, 'reviewer')", [company, owner]);
+    const demoted = await db.query<{ role: string }>(
+      "select role from public.company_members where company_id = $1 and user_id = $2",
+      [company, owner],
+    );
+    expect(demoted.rows[0].role).toBe("reviewer");
+
+    await as(db, reviewer, "select public.company_remove_member($1, $2)", [company, owner]);
+    const removed = await db.query("select 1 from public.company_members where company_id = $1 and user_id = $2", [company, owner]);
+    expect(removed.rows).toHaveLength(0);
+
+    await expectDenied(
+      db,
+      reviewer,
+      "select public.company_change_member_role($1, $2, 'reviewer')",
+      [company, reviewer],
+      /At least one Company Administrator must remain/,
+    );
+    await expectDenied(
+      db,
+      reviewer,
+      "select public.company_remove_member($1, $2)",
+      [company, reviewer],
+      /At least one Company Administrator must remain/,
+    );
+  });
+
+  it("keeps team management company-scoped", async () => {
+    const companyA = await createCompany("Team Tenant A", "team-tenant-a");
+    const companyB = await createCompany("Team Tenant B", "team-tenant-b");
+    const ownerA = await firstAdmin(companyA, "team.tenant.a@example.com");
+    const ownerB = await firstAdmin(companyB, "team.tenant.b@example.com");
+
+    const invitationA = await inviteAsCompanyAdmin(companyA, ownerA, "team.tenant.a.reviewer@example.com");
+    const reviewerA = await signUp(db, { email: "team.tenant.a.reviewer@example.com", provider: "google" });
+    await as(db, reviewerA, "select public.accept_invitation($1)", [invitationA.hash]);
+
+    await expectDenied(db, ownerB, "select * from public.company_admin_list_team($1)", [companyA], /Not authorised/);
+    const teamB = await as<{ email: string }>(db, ownerB, "select email from public.company_admin_list_team($1)", [companyB]);
+    expect(teamB.rows).toEqual([{ email: "team.tenant.b@example.com" }]);
   });
 });
