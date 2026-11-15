@@ -469,7 +469,7 @@ describe("first Company Admin invitation lifecycle", () => {
 
   it("revokes an invitation, invalidates its token and allows a replacement", async () => {
     const company = await createCompany("Revoke First Invite Lda", "revoke-first-invite");
-    const first = await inviteFirstCompanyAdmin(company, "withdrawn@example.com");
+    const first = await inviteFirstCompanyAdmin(company, "withdrawn.first.admin@example.com");
     await as(db, ADMIN, "select public.admin_revoke_invitation($1)", [first.id]);
 
     const revoked = await db.query<{ status: string; revoked_by: string | null; revoked_at: string | null }>(
