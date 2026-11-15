@@ -10,9 +10,11 @@ export type AcceptInvitationState = { message?: string };
 const HASH = /^[0-9a-f]{64}$/;
 
 export async function acceptCompanyInvitation(
-  _prev: AcceptInvitationState,
-  _formData: FormData,
+  prev: AcceptInvitationState,
+  formData: FormData,
 ): Promise<AcceptInvitationState> {
+  void prev;
+  void formData;
   await requireUser("/invite");
   const store = await cookies();
   const tokenHash = store.get("hs_company_invitation")?.value;
