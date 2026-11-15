@@ -360,7 +360,8 @@ describe("first Company Admin invitation lifecycle", () => {
       send_count: 0,
       last_sent_at: null,
     });
-    expect(await hasProfile(db, (await signUp(db, { email: "unrelated.person@example.com" })))).toBe(true);
+    const authUser = await db.query("select 1 from auth.users where email = 'people.lead@example.com'");
+    expect(authUser.rows).toHaveLength(0);
     const member = await db.query("select 1 from public.company_members where company_id = $1", [company]);
     expect(member.rows).toHaveLength(0);
     const audit = await db.query<{ action: string }>(
