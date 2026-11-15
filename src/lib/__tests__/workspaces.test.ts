@@ -77,7 +77,7 @@ describe("listWorkspaces", () => {
       ["admin", "/admin"],
       [`company:${CO1}`, `/employer/${CO1}`],
     ]);
-    expect(ws[2].detail).toBe("Company administrator");
+    expect(ws[2].detail).toBe("Company Administrator");
   });
 
   it("marks suspended companies", () => {
