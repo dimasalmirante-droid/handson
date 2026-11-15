@@ -7,7 +7,7 @@
  */
 import { safeNextPath } from "@/lib/auth/redirects";
 
-export type CompanyRole = "viewer" | "editor" | "company_admin";
+export type CompanyRole = "reviewer" | "company_admin";
 export type AdminRole = "reviewer" | "admin" | "super_admin";
 
 export type Contexts = {
@@ -26,9 +26,8 @@ export type Workspace = {
 };
 
 export const COMPANY_ROLE_LABELS: Record<CompanyRole, string> = {
-  viewer: "Viewer",
-  editor: "Editor",
-  company_admin: "Company administrator",
+  reviewer: "Reviewer",
+  company_admin: "Company Administrator",
 };
 
 const ADMIN_ROLE_LABELS: Record<AdminRole, string> = {

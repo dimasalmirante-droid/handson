@@ -3,7 +3,7 @@ import { expectNoHorizontalScroll, hasStudent, logIn, student } from "./helpers"
 
 /** Module 2 Step 1: workspace routing, legal pages and sign-out. */
 test.describe("workspaces and legal pages", () => {
-  for (const path of ["/start", "/workspaces", "/employer/11111111-1111-4111-8111-111111111111", "/legal/accept"]) {
+  for (const path of ["/start", "/workspaces", "/employer/11111111-1111-4111-8111-111111111111", "/employer/11111111-1111-4111-8111-111111111111/team", "/legal/accept"]) {
     test(`signed-out visitors are sent to login from ${path}`, async ({ page }) => {
       await page.goto(path);
       await expect(page).toHaveURL(/\/login\?next=/);
@@ -41,6 +41,8 @@ test.describe("workspaces for a signed-in student", () => {
     await logIn(page, student);
     const res = await page.goto("/employer/11111111-1111-4111-8111-111111111111");
     expect(res?.status()).toBe(404);
+    const teamRes = await page.goto("/employer/11111111-1111-4111-8111-111111111111/team");
+    expect(teamRes?.status()).toBe(404);
   });
 
   test("the site root and login page send a signed-in student to their workspace", async ({ page }) => {

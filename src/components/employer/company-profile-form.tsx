@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState, useCallback, useEffect, useState, type ReactNode } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/feedback";
@@ -129,7 +128,7 @@ export function CompanyProfileForm({
             </div>
             {!editable && (
               <Alert tone="info" className="sm:max-w-sm">
-                You have viewer access. Contact a Company Administrator or Editor to update these details.
+                You have Reviewer access. Contact a Company Administrator to update these details.
               </Alert>
             )}
           </div>
