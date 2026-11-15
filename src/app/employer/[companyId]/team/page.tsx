@@ -29,7 +29,6 @@ type PendingInvitation = {
   expires_at: string;
   last_sent_at: string | null;
   send_count: number;
-  isExpired: boolean;
 };
 
 export default async function CompanyTeamPage({ params }: PageProps<"/employer/[companyId]/team">) {
@@ -86,10 +85,9 @@ async function TeamManagementData({ companyId, companyName }: { companyId: strin
   }
 
   const members = (teamData ?? []) as TeamMember[];
-  const invitations = ((invitationData ?? []) as Omit<PendingInvitation, "isExpired">[]).map((invitation) => ({
+  const invitations = ((invitationData ?? []) as PendingInvitation[]).map((invitation) => ({
     ...invitation,
     role: invitation.role === "company_admin" ? "company_admin" as const : "reviewer" as const,
-    isExpired: new Date(invitation.expires_at).getTime() <= Date.now(),
   }));
 
   return (
