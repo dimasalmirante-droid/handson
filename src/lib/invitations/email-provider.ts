@@ -37,6 +37,7 @@ export async function sendInvitationEmail(input: {
         text: input.text,
       }),
       cache: "no-store",
+      signal: AbortSignal.timeout(8_000),
     });
   } catch {
     throw new InvitationEmailError("The email provider could not be reached. Please try again.");
