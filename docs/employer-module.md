@@ -1,6 +1,6 @@
 # Module 2 · Employer Management
 
-Design record for the employer module. **Step 1 (foundation) and Step 2.1 (the admin employer directory and company registration) are implemented. This branch adds the first Company Admin invitation, email delivery and acceptance experience.** The public Employer Page, Page Studio and managed talent campaigns are later steps.
+Design record for the employer module. **Step 1 (foundation), Step 2.1 (the admin employer directory and company registration), first Company Admin invitation, and the internal company profile are implemented.** Team management, the public Employer Page, Page Studio and managed talent campaigns are later steps.
 
 ## Admin employer directory (Step 2.1)
 
@@ -11,100 +11,44 @@ Design record for the employer module. **Step 1 (foundation) and Step 2.1 (the a
 - The slug is reserved for the employer's future permanent public page. Registering a company does not publish a page or activate its workspace.
 - The registration form suggests a slug from the company name using lower-case ASCII letters/numbers and hyphens, removing accents and normalising spaces and punctuation. The suggestion updates as the company name changes until the administrator customises the slug; after that, changing the company name leaves the custom slug untouched. The database remains the authority for uniqueness and reports when a slug is already in use.
 - The companies table has an optional `contact_email` for the organisation's official correspondence address (for example, a shared HR inbox). It is company data, not a sign-in identity. Individual representatives must use their own Handson accounts and company memberships.
-- The database now exposes the admin-only `admin_create_company_with_contact()` function for registration with that address. The existing `admin_create_company()` function remains available for compatibility; the admin form will be connected to the new function in a later application step.
+- The database exposes the admin-only `admin_create_company_with_contact()` function for registration with that address. The existing `admin_create_company()` function remains available for compatibility.
 - This step does not invite employer contacts or create campaigns. Contract execution remains outside the application for now; a separate contract record and lifecycle will be designed before contract tracking is introduced.
 
+## Company workspace profile
+
+- `/employer/<company-id>/profile` is an internal profile for the employer workspace. It is not the public Employer Page and is not published automatically.
+- The profile contains the company name, official contact email, description, website, industry, country, province/region, city and business phone.
+- The permanent slug is displayed but cannot be changed from the profile form. Changing a company name does not change its slug.
+- Company Administrators and Editors can update the profile; Viewers can read it only.
+- Updates use `company_update_profile()`, which checks membership and role again in the database, refuses suspended companies, and records an audit event with the list of changed fields (not field values).
+- Profile fields are visible only to members of that company and Handson administrators. The public Employer Page, its approval process and publication history remain a separate future feature.
 
 ## Accounts and workspaces
 
 - One sign-in account (Supabase Auth) can hold several roles: a student profile, a Handson administrator role, and membership of one or more companies. There are never duplicate accounts.
-- `public.accounts` holds one record per account and is the authority for **account status**. Suspending an account blocks every workspace it has, whether or not it has a student profile. `profiles.account_status` mirrors it so existing student behaviour is unchanged.
-- **Company status** (`onboarding`, `active`, `suspended`) affects only that company. Onboarding and active companies are fully usable; suspension blocks its members' access and changes.
-- `my_contexts()` returns the caller's workspaces. After sign-in, `/start` sends people to:
-  1. sign-out, if the account is suspended;
-  2. the legal acceptance screen, if required;
-  3. a safe `next` path;
-  4. their remembered workspace, if it is still theirs;
-  5. `/admin`, for Handson administrators (unchanged);
-  6. their only workspace;
-  7. otherwise `/workspaces`, the chooser.
-- `/workspaces` lists workspaces and pending invitations, and offers **Create my student profile** to anyone without one, independently of any invitation.
-- The workspace switcher appears only for people with more than one workspace. The remembered choice is a cookie that is re-checked against the database on every use.
-- Guards: `requireUser()` (signed in, not suspended, legal acceptance done), `requireStudent()` (student areas), `requireAdmin()` (unchanged), `requireCompanyRole()` (employer areas; others get a 404).
+- `public.accounts` holds one record per account and is the authority for **account status**. Suspending an account blocks every workspace it has.
+- **Company status** (`onboarding`, `active`, `suspended`) affects only that company. Onboarding and active companies are usable; suspension blocks its members' access and changes.
+- `my_contexts()` returns the caller's workspaces. After sign-in, `/start` sends people to the correct workspace or chooser.
+- `/workspaces` lists workspaces and pending invitations. A Company Administrator is not prompted to create a student profile during employer onboarding.
+- The workspace switcher appears only for people with more than one workspace. The remembered choice is re-checked against the database on every use.
+- Guards: `requireUser()`, `requireStudent()`, `requireAdmin()`, and `requireCompanyRole()`.
 
 ## Sign-up and student profiles
 
-`handle_new_user()` creates a student profile for every new account, exactly as before, **except** when a valid pending invitation exists for the email (in a company that is not suspended) and the sign-up was not marked as a student registration. The decision uses only database data, never a browser cookie.
-
-| Situation | Student profile at sign-up |
-|---|---|
-| No valid invitation (email or Google) | Yes |
-| Invitation pending, registered on the student form (`signup_intent = student`) | Yes |
-| Invitation pending, Google from the student registration page | Created by `/auth/callback` (`intent=student`) when the account has no workspace yet |
-| Invitation pending, registered from the invitation page (Step 3) | No; can be created later on `/workspaces` |
-
-The student marker can only add a student profile for the person themselves; it never grants anything. Employer access is granted only by `accept_invitation()`.
+`handle_new_user()` does not create a student profile automatically when a new account is registering for a pending company invitation, unless the sign-up was explicitly marked as a student registration. Employer membership is granted only by `accept_invitation()`.
 
 ## Invitations
 
-- **Token:** 32 random bytes (base64url). Only its SHA-256 hash is stored. The application issues a 7-day token; the database accepts invitation lifetimes from 1 hour to 30 days. Resending rotates the hash, immediately invalidating the previous link.
-- **First Company Admin:** `admin_invite_first_company_admin()` is Handson-admin-only. It allows one pending first-admin invitation or one accepted `company_admin` membership per company. An expired pending first-admin invitation is marked `expired` before a replacement is created. It does not create an Auth user, company member or duplicate account.
-- **Delivery tracking:** after Resend accepts the email request, `admin_mark_invitation_sent()` records `last_sent_at`, increments `send_count` and audits the event. A failed API request is not counted; provider acceptance does not guarantee that the recipient's mailbox accepts or displays the message.
-- **Admin interface:** `/admin/company-admins` lists employers and their first Company Administrator. `/admin/employers/<company-id>/administrator` appoints, resends or revokes the first-admin invitation. Only Handson admins and super admins can access these routes.
-- **Email delivery:** employer invitation messages use the Resend API from the server, with sender `Handson <hello@handson.cloud>`. Configure the server-only `RESEND_API_KEY` in Vercel Preview and Production after verifying the sender/domain in Resend. No Supabase service-role key is used by this flow.
-- **Resend and revoke:** `admin_resend_invitation()` rotates the token for a pending, unexpired invitation and clears `last_sent_at`; `admin_revoke_invitation()` revokes a pending invitation and records who revoked it. Both are audited. A revoked or rotated token can no longer be accepted.
-- **Uniqueness:** at most one pending invitation per company and email (case-insensitive; stored lower-case). Creating an invitation marks an expired pending one `expired` first, so expiry never blocks re-invitation. Inviting a current member is refused.
-- **`accept_invitation(token_hash)`:** in one transaction, with the invitation row locked:
-  - the invitation must be pending and not expired;
-  - the account must be active, with a verified email equal to the invited email (ignoring case);
-  - the company must not be suspended, and the person must not already be a member.
-
-  It then adds the membership, marks the invitation accepted and audits the acceptance.
-- **Carrying the token through sign-up (Step 3):**
-  - `/invite/<token>` hashes the token immediately, stores only the hash in an httpOnly, Secure, SameSite=Lax cookie with `Path=/invite`, then redirects to `/invite`.
-  - `/invite` calls the public `invitation_preview()` function, which exposes only the company, role, masked email, expiry and status. An invited person can create an account or log in using Google or email/password.
-  - Google returns to `/auth/callback?next=/invite`; the callback does not read the cookie and simply redirects to `/invite`, where the cookie is available.
-  - Email verification links return to `/auth/confirm?next=/invite`.
-  - Acceptance happens only through a Server Action on `/invite`. The action reads the hash cookie and calls `accept_invitation()`; the database checks account status, verified matching email, expiry and company status before creating membership.
-  - Invitation account registration does not add the `signup_intent=student` marker. The user can create a student profile later, independently, from `/workspaces`.
-- The first Company Admin is invited with the `company_admin` role; after acceptance, the existing account can open the employer workspace while the company remains in `onboarding` status. The first-admin invitation itself does not activate the company or create a separate login.
-
-## Legal documents
-
-- Super admins create and publish versions in **Admin → Legal documents**. Published versions are immutable.
-- The current version of each document is the latest published version whose effective date has passed.
-- The acceptance screen (`/legal/accept`) is off until **both** a current Terms version and a current Privacy Notice version exist. It then asks each account once per document version: Terms are *accepted*, the Privacy Notice is *acknowledged*, each with its own checkbox and record. When only one document changes, only that one is asked.
-- `accept_legal_documents()` accepts only the exact current versions; repeating it has no effect.
-- `draft-2026-11` acceptances recorded before this module remain in the history but do not count as acceptance of a final version.
-- Optional consents (employer visibility, marketing) are separate and never part of this screen.
-- The documents are readable without signing in at `/legal/terms` and `/legal/privacy` (with version and effective date) and earlier versions at `/legal/<kind>/<version>`.
-
-## Consent records: account instead of profile (expand and contract)
-
-1. **Step 1 (expand):** `user_id` added, filled from `profile_id`, made required and indexed. `profile_id` is kept, optional, synchronised by trigger, and must equal `user_id` when present. Deleting a profile now clears `profile_id` instead of deleting consent history; deleting the account still removes it. Both read policies exist. The application reads by `user_id`.
-2. **Later (contract), only after approval:**
-   - Precondition: the code no longer uses `consent_records.profile_id`, a dependency query finds nothing that references it, and a release has run on `user_id` without errors.
-   - Then: drop the sync trigger, the old policy, the old index and the column.
-
-## Publication (later step; not in Step 1)
-
-- **Version statuses:** `submitted` (locked), `withdrawn`, `changes_requested`, `approved`, `superseded`.
-- **Live profile:** a publication history table (`employer_profile_publications`) records publications. The live profile is the row without an end date; at most one per company.
-- **Publishing a newer version:** ends the live row with reason `replaced` and marks its version `superseded`.
-- **Unpublishing:** ends it with reason `unpublished` and a required note.
-- **Images after unpublishing:** public images are deleted from Handson, but copies already downloaded or cached elsewhere may remain for some time; the interface says so and promises nothing more.
+- Invitation tokens are random, short-lived and stored only as SHA-256 hashes.
+- The first Company Admin is invited by a Handson administrator. The app does not create an Auth user or grant membership before acceptance.
+- After acceptance, the invited person uses their existing Handson account and the company remains in its current status.
+- The generic acceptance flow supports the existing company roles: `viewer`, `editor` and `company_admin`. Team management will introduce company-admin-scoped invite, resend and revoke operations in a later step.
+- Email is sent by the server through Resend using `Handson <hello@handson.cloud>`. The secret `RESEND_API_KEY` is configured separately for Preview and Production.
 
 ## Database security rules
 
-Every function:
-- has `SET search_path = ''` and fully qualified names;
-- uses `SECURITY DEFINER` only where needed;
-- checks the caller, role and account status first;
-- locks rows before status changes;
-- has execute revoked from `public`, `anon` and `authenticated`, then granted explicitly. Only `invitation_preview` and `current_legal_documents` are available to signed-out visitors. Trigger functions are callable by nobody.
-
-New tables have Row Level Security, no client write grants, and read access only through policies. Internal company notes are readable by Handson administrators only. Tests in `supabase/tests/employer.test.ts` check all of this.
+Every privileged function has a fixed empty `search_path`, fully qualified names, role and account checks, and explicit execute grants. New tables (when introduced) must have RLS enabled and matching grants. Company writes remain unavailable directly to authenticated users; they happen only through role-checked functions.
 
 ## Environments
 
-Staging and production are separate Supabase projects; previews and CI use staging. Migrations reach production only through the **Database migrations** workflow ([database-migrations.md](database-migrations.md)).
+Staging and Production are separate Supabase projects; previews and CI use Staging. Migrations reach Production only through the protected **Database migrations** workflow ([database-migrations.md](database-migrations.md)).
