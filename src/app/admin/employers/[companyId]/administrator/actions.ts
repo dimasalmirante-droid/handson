@@ -42,6 +42,7 @@ async function emailInvitation(input: {
   email: string;
   fullName: string | null;
   companyName: string;
+  expiresAt: Date;
 }): Promise<string | null> {
   const origin = await requestOrigin();
   const inviteUrl = `${origin}/invite/${encodeURIComponent(input.token)}`;
@@ -49,7 +50,7 @@ async function emailInvitation(input: {
     companyName: input.companyName,
     fullName: input.fullName ?? "",
     inviteUrl,
-    expiresAt: invitationExpiry(),
+    expiresAt: input.expiresAt,
   });
 
   try {
@@ -128,6 +129,7 @@ export async function createFirstCompanyAdminInvitation(
     email: parsed.data.email,
     fullName: parsed.data.fullName,
     companyName: company.name,
+    expiresAt,
   });
   if (emailError) {
     revalidatePath(`/admin/employers/${companyId}/administrator`);
