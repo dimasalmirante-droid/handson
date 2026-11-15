@@ -195,6 +195,7 @@ export async function resendFirstCompanyAdminInvitation(
     email: invitation.email,
     fullName: invitation.full_name,
     companyName: company.name,
+    expiresAt,
   });
   if (emailError) {
     revalidatePath(`/admin/employers/${companyId}/administrator`);
