@@ -46,3 +46,10 @@ export async function acceptCompanyInvitation(
   });
   redirect("/workspaces");
 }
+
+/** Sign out while preserving the invitation destination and its hash cookie. */
+export async function signOutForInvitation(): Promise<void> {
+  const supabase = await createClient();
+  await supabase.auth.signOut({ scope: "local" });
+  redirect("/login?next=%2Finvite&notice=signed-out");
+}
