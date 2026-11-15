@@ -72,6 +72,8 @@ export default async function CompanyAdminsPage() {
                             <p className="font-medium">{admin.full_name || "Company Administrator"}</p>
                             {admin.job_title && <p className="text-sm text-ink-muted">{admin.job_title}</p>}
                           </div>
+                        ) : membersError ? (
+                          <span className="text-sm text-ink-muted">Could not verify</span>
                         ) : (
                           <span className="text-sm text-ink-muted">Not yet appointed</span>
                         )}
