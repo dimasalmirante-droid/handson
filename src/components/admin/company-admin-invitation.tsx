@@ -100,7 +100,7 @@ export function CompanyAdminInvitationPanel({
             <div className="flex flex-wrap items-center gap-2">
               <Badge tone="indigo">Invitation pending</Badge>
               {activeInvitation.last_sent_at ? (
-                <Badge tone="success">Email sent</Badge>
+                <Badge tone="success">Email submitted</Badge>
               ) : (
                 <Badge tone="warning">Email not confirmed as sent</Badge>
               )}
@@ -110,7 +110,7 @@ export function CompanyAdminInvitationPanel({
             <p className="mt-3 text-sm">{activeInvitation.email}</p>
             <p className="mt-1 text-sm text-ink-muted">Expires {dateTime(activeInvitation.expires_at)}</p>
             {activeInvitation.last_sent_at && (
-              <p className="mt-1 text-sm text-ink-muted">Last email sent {dateTime(activeInvitation.last_sent_at)}</p>
+              <p className="mt-1 text-sm text-ink-muted">Last email submitted {dateTime(activeInvitation.last_sent_at)}</p>
             )}
           </div>
 
