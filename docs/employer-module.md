@@ -1,6 +1,6 @@
 # Module 2 · Employer Management
 
-Design record for the employer module. **Step 1 (foundation) is implemented. Step 2.1 (the admin employer directory and company registration) is implemented in this branch.** The employer contact invitation flow, public Employer Page, Page Studio and managed talent campaigns are later steps.
+Design record for the employer module. **Step 1 (foundation) and Step 2.1 (the admin employer directory and company registration) are implemented. This branch adds the database lifecycle for the first Company Admin invitation; the invitation screen, email delivery and acceptance page are a separate application step.** The public Employer Page, Page Studio and managed talent campaigns are later steps.
 
 ## Admin employer directory (Step 2.1)
 
@@ -46,7 +46,10 @@ The student marker can only add a student profile for the person themselves; it 
 
 ## Invitations
 
-- **Token:** 32 random bytes (base64url). Only its SHA-256 hash is stored. It is valid for 7 days, and resending replaces it (Step 3).
+- **Token:** 32 random bytes (base64url). Only its SHA-256 hash is stored. The application issues a 7-day token; the database accepts invitation lifetimes from 1 hour to 30 days. Resending rotates the hash, immediately invalidating the previous link.
+- **First Company Admin:** `admin_invite_first_company_admin()` is Handson-admin-only. It allows one pending first-admin invitation or one accepted `company_admin` membership per company. An expired pending first-admin invitation is marked `expired` before a replacement is created. It does not create an Auth user, company member or duplicate account.
+- **Delivery tracking:** after the email provider confirms delivery, `admin_mark_invitation_sent()` records `last_sent_at`, increments `send_count` and audits the event. Failed sends are not counted.
+- **Resend and revoke:** `admin_resend_invitation()` rotates the token for a pending, unexpired invitation and clears `last_sent_at`; `admin_revoke_invitation()` revokes a pending invitation and records who revoked it. Both are audited. A revoked or rotated token can no longer be accepted.
 - **Uniqueness:** at most one pending invitation per company and email (case-insensitive; stored lower-case). Creating an invitation marks an expired pending one `expired` first, so expiry never blocks re-invitation. Inviting a current member is refused.
 - **`accept_invitation(token_hash)`:** in one transaction, with the invitation row locked:
   - the invitation must be pending and not expired;
@@ -59,6 +62,7 @@ The student marker can only add a student profile for the person themselves; it 
   - Google returns to `/auth/callback?next=/invite`; the callback does not read the cookie and simply redirects to `/invite`, where the cookie is available.
   - Email verification links return to `/auth/confirm?next=/invite`.
   - Acceptance happens only through a POST on `/invite`.
+- The first Company Admin is invited with the `company_admin` role; after acceptance, the existing account can open the employer workspace while the company remains in `onboarding` status. The first-admin invitation itself does not activate the company or create a separate login.
 
 ## Legal documents
 

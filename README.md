@@ -112,6 +112,7 @@ SQL migrations live in `supabase/migrations/`. They are applied to staging and p
 | `20261110000200_legal_documents.sql` | Module 2 · Versioned Terms and Privacy Notice; per-document acceptance of the exact current version |
 | `20261110000300_accounts.sql` | Module 2 · One record per account; account-level suspension across all workspaces (mirrored to `profiles.account_status`) |
 | `20261110000400_employer_foundation.sql` | Module 2 · Companies, members, roles, invitations (hashed tokens), workspaces, tenant isolation |
+| `20261115000100_company_admin_invitation_lifecycle.sql` | Module 2 · First Company Admin invitation, secure token rotation, delivery tracking and revocation |
 
 ## Database schema
 

@@ -43,6 +43,17 @@ async function invite(company: string, email: string, role = "editor", expires =
   return { ...t, id: rows[0].id };
 }
 
+async function inviteFirstCompanyAdmin(company: string, email: string, fullName = "First Company Admin", jobTitle = "People Lead") {
+  const t = newToken();
+  const { rows } = await as<{ id: string }>(
+    db,
+    ADMIN,
+    "select public.admin_invite_first_company_admin($1, $2, $3, $4, $5, $6) as id",
+    [company, email, fullName, jobTitle, t.hash, inDays(7)],
+  );
+  return { ...t, id: rows[0].id };
+}
+
 /** Make an invitation look as if it was created in the past and has now expired. */
 async function expire(invitationId: string) {
   await db.query(
@@ -322,6 +333,220 @@ describe("invitations: expiry, uniqueness and email case", () => {
       "select public.admin_create_invitation($1, 'x@example.com', 'viewer', null, null, $2, $3)",
       [co, newToken().hash, inDays(7)],
       /suspended/,
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+describe("first Company Admin invitation lifecycle", () => {
+  it("creates a company_admin invitation without creating a user or membership", async () => {
+    const company = await createCompany("First Admin Lda", "first-admin");
+    const invitation = await inviteFirstCompanyAdmin(company, "people.lead@example.com");
+
+    const { rows } = await db.query<{
+      company_id: string; email: string; role: string; full_name: string; job_title: string;
+      status: string; send_count: number; last_sent_at: string | null;
+    }>(
+      "select company_id, email::text, role, full_name, job_title, status, send_count, last_sent_at from public.company_invitations where id = $1",
+      [invitation.id],
+    );
+    expect(rows[0]).toMatchObject({
+      company_id: company,
+      email: "people.lead@example.com",
+      role: "company_admin",
+      full_name: "First Company Admin",
+      job_title: "People Lead",
+      status: "pending",
+      send_count: 0,
+      last_sent_at: null,
+    });
+    const authUser = await db.query("select 1 from auth.users where email = 'people.lead@example.com'");
+    expect(authUser.rows).toHaveLength(0);
+    const member = await db.query("select 1 from public.company_members where company_id = $1", [company]);
+    expect(member.rows).toHaveLength(0);
+    const audit = await db.query<{ action: string }>(
+      "select action from public.audit_logs where target_id = $1 order by id",
+      [invitation.id],
+    );
+    expect(audit.rows.map((r) => r.action)).toContain("invitation.created");
+    expect(JSON.stringify(audit.rows)).not.toContain(invitation.hash);
+  });
+
+  it("allows only one active first-admin invitation and only one accepted Company Admin", async () => {
+    const company = await createCompany("Single Admin Lda", "single-admin");
+    await inviteFirstCompanyAdmin(company, "first.admin@example.com");
+    await expectDenied(
+      db,
+      ADMIN,
+      "select public.admin_invite_first_company_admin($1, 'second.admin@example.com', 'Second Admin', null, $2, $3)",
+      [company, newToken().hash, inDays(7)],
+      /already pending/,
+    );
+
+    const existing = await db.query<{ token_hash: string }>(
+      "select token_hash from public.company_invitations where company_id = $1 and role = 'company_admin' and status = 'pending'",
+      [company],
+    );
+    const person = await signUp(db, { email: "first.admin@example.com", provider: "google" });
+    await as(db, person, "select public.accept_invitation($1)", [existing.rows[0].token_hash]);
+    await expectDenied(
+      db,
+      ADMIN,
+      "select public.admin_invite_first_company_admin($1, 'replacement@example.com', 'Replacement', null, $2, $3)",
+      [company, newToken().hash, inDays(7)],
+      /already has a Company Admin/,
+    );
+  });
+
+  it("expires an old pending first-admin invitation before creating a replacement", async () => {
+    const company = await createCompany("Expired First Invite Lda", "expired-first-invite");
+    const first = await inviteFirstCompanyAdmin(company, "first@example.com");
+    await expire(first.id);
+    const second = await inviteFirstCompanyAdmin(company, "second@example.com");
+
+    const { rows } = await db.query<{ id: string; status: string }>(
+      "select id, status from public.company_invitations where company_id = $1 and role = 'company_admin' order by created_at, id",
+      [company],
+    );
+    expect(rows).toEqual([
+      { id: first.id, status: "expired" },
+      { id: second.id, status: "pending" },
+    ]);
+    const audit = await db.query(
+      "select 1 from public.audit_logs where action = 'invitation.expired' and target_id = $1",
+      [first.id],
+    );
+    expect(audit.rows).toHaveLength(1);
+  });
+
+  it("rotates the token on resend and records only successful email sends", async () => {
+    const company = await createCompany("Resend First Invite Lda", "resend-first-invite");
+    const first = await inviteFirstCompanyAdmin(company, "resend@example.com");
+    const firstCount = await as<{ count: number }>(db, ADMIN, "select public.admin_mark_invitation_sent($1) as count", [first.id]);
+    expect(firstCount.rows[0].count).toBe(1);
+
+    const secondToken = newToken();
+    await as(
+      db,
+      ADMIN,
+      "select public.admin_resend_invitation($1, $2, $3)",
+      [first.id, secondToken.hash, inDays(7)],
+    );
+    const afterResend = await db.query<{ token_hash: string; send_count: number; last_sent_at: string | null }>(
+      "select token_hash, send_count, last_sent_at from public.company_invitations where id = $1",
+      [first.id],
+    );
+    expect(afterResend.rows[0]).toEqual({
+      token_hash: secondToken.hash,
+      send_count: 1,
+      last_sent_at: null,
+    });
+
+    const secondCount = await as<{ count: number }>(db, ADMIN, "select public.admin_mark_invitation_sent($1) as count", [first.id]);
+    expect(secondCount.rows[0].count).toBe(2);
+    const final = await db.query<{ send_count: number; last_sent_at: string | null }>(
+      "select send_count, last_sent_at from public.company_invitations where id = $1",
+      [first.id],
+    );
+    expect(final.rows[0].send_count).toBe(2);
+    expect(final.rows[0].last_sent_at).toBeTruthy();
+
+    const person = await signUp(db, { email: "resend@example.com", provider: "google" });
+    await expectDenied(db, person, "select public.accept_invitation($1)", [first.hash], /not found/);
+    await as(db, person, "select public.accept_invitation($1)", [secondToken.hash]);
+    const actions = await db.query<{ action: string }>(
+      "select action from public.audit_logs where target_id = $1 order by id",
+      [first.id],
+    );
+    expect(actions.rows.map((r) => r.action)).toEqual([
+      "invitation.created",
+      "invitation.email_sent",
+      "invitation.resent",
+      "invitation.email_sent",
+      "invitation.accepted",
+    ]);
+  });
+
+  it("revokes an invitation, invalidates its token and allows a replacement", async () => {
+    const company = await createCompany("Revoke First Invite Lda", "revoke-first-invite");
+    const first = await inviteFirstCompanyAdmin(company, "withdrawn.first.admin@example.com");
+    await as(db, ADMIN, "select public.admin_revoke_invitation($1)", [first.id]);
+
+    const revoked = await db.query<{ status: string; revoked_by: string | null; revoked_at: string | null }>(
+      "select status, revoked_by, revoked_at from public.company_invitations where id = $1",
+      [first.id],
+    );
+    expect(revoked.rows[0]).toMatchObject({ status: "revoked", revoked_by: ADMIN });
+    expect(revoked.rows[0].revoked_at).toBeTruthy();
+
+    const person = await signUp(db, { email: "withdrawn.first.admin@example.com", provider: "google" });
+    await expectDenied(db, person, "select public.accept_invitation($1)", [first.hash], /withdrawn/);
+    const second = await inviteFirstCompanyAdmin(company, "new.person@example.com");
+    expect(second.id).not.toBe(first.id);
+
+    const audit = await db.query<{ action: string }>(
+      "select action from public.audit_logs where target_id = $1 order by id",
+      [first.id],
+    );
+    expect(audit.rows.map((r) => r.action)).toContain("invitation.revoked");
+  });
+
+  it("rejects a suspended company and non-admin callers", async () => {
+    const company = await createCompany("Protected First Invite Lda", "protected-first-invite");
+    const invitation = await inviteFirstCompanyAdmin(company, "protected@example.com");
+    await setCompanyStatus(company, "suspended");
+    await expectDenied(
+      db,
+      ADMIN,
+      "select public.admin_resend_invitation($1, $2, $3)",
+      [invitation.id, newToken().hash, inDays(7)],
+      /suspended/,
+    );
+    await expectDenied(
+      db,
+      ADMIN,
+      "select public.admin_mark_invitation_sent($1)",
+      [invitation.id],
+      /suspended/,
+    );
+
+    await expectDenied(
+      db,
+      REVIEWER,
+      "select public.admin_invite_first_company_admin($1, 'reviewer@example.com', 'Reviewer', null, $2, $3)",
+      [company, newToken().hash, inDays(7)],
+      /Not authorised/,
+    );
+    await expectDenied(db, STUDENT, "select public.admin_resend_invitation($1, $2, $3)", [invitation.id, newToken().hash, inDays(7)], /Not authorised/);
+    await expectDenied(db, null, "select public.admin_mark_invitation_sent($1)", [invitation.id]);
+    await expectDenied(db, REVIEWER, "select public.admin_revoke_invitation($1)", [invitation.id], /Not authorised/);
+  });
+
+  it("rejects invalid tokens, expired resends and non-pending lifecycle changes", async () => {
+    const company = await createCompany("Invalid Lifecycle Lda", "invalid-lifecycle");
+    const invitation = await inviteFirstCompanyAdmin(company, "invalid@example.com");
+    await expectDenied(
+      db,
+      ADMIN,
+      "select public.admin_resend_invitation($1, $2, $3)",
+      [invitation.id, "not-a-hash", inDays(7)],
+      /Invalid invitation token/,
+    );
+    await expire(invitation.id);
+    await expectDenied(
+      db,
+      ADMIN,
+      "select public.admin_resend_invitation($1, $2, $3)",
+      [invitation.id, newToken().hash, inDays(7)],
+      /expired/,
+    );
+    await as(db, ADMIN, "select public.admin_revoke_invitation($1)", [invitation.id]);
+    await expectDenied(
+      db,
+      ADMIN,
+      "select public.admin_mark_invitation_sent($1)",
+      [invitation.id],
+      /no longer valid/,
     );
   });
 });
@@ -753,6 +978,7 @@ describe("database function security", () => {
     "admin_set_user_status", "is_company_member", "has_company_role", "company_is_writable", "my_contexts",
     "my_pending_invitations", "create_student_profile", "invitation_preview", "accept_invitation",
     "admin_create_company", "admin_create_company_with_contact", "admin_create_invitation",
+    "admin_invite_first_company_admin", "admin_resend_invitation", "admin_mark_invitation_sent", "admin_revoke_invitation",
     // existing functions changed in Step 1
     "handle_new_user", "set_employer_visibility", "record_consent", "has_admin_role", "admin_set_account_status",
   ];
