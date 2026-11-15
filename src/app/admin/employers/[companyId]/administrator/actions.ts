@@ -144,7 +144,7 @@ export async function createFirstCompanyAdminInvitation(
     ok: true,
     message: recorded
       ? `Resend accepted the invitation email request for ${parsed.data.email}. The link is valid for seven days.`
-      : "The invitation email was sent, but its delivery record could not be updated. Refresh this page before retrying.",
+      : "Resend accepted the invitation email request, but its send record could not be updated. Refresh this page before retrying.",
   };
 }
 
