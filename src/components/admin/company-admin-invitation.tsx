@@ -74,6 +74,10 @@ export function CompanyAdminInvitationPanel({
 
   return (
     <div className="flex flex-col gap-5">
+      <ActionMessage state={createState} />
+      <ActionMessage state={resendState} />
+      <ActionMessage state={revokeState} />
+
       {companyStatus === "suspended" && (
         <Alert tone="danger">This employer is suspended. A Company Administrator cannot be appointed while the workspace is suspended.</Alert>
       )}
@@ -111,9 +115,6 @@ export function CompanyAdminInvitationPanel({
             )}
           </div>
 
-          <ActionMessage state={resendState} />
-          <ActionMessage state={revokeState} />
-
           {!emailConfigured && (
             <Alert tone="warning">
               Email sending is not configured for this environment. Add the server-side RESEND_API_KEY in Vercel before retrying.
@@ -142,7 +143,6 @@ export function CompanyAdminInvitationPanel({
         </div>
       ) : (
         <form action={createAction} className="flex flex-col gap-4">
-          <ActionMessage state={createState} />
           {invitation && (
             <Alert tone="warning">
               The previous first-administrator invitation is {invitation.status === "pending" ? "expired" : invitation.status}. You can appoint a new administrator below.
