@@ -76,7 +76,12 @@ begin
     raise exception 'Company not found' using errcode = 'P0002';
   end if;
 
-  -- Serialise company-level changes, including membership/role changes.
+  -- Reject non-members before attempting to lock a tenant's company row.
+  if not public.has_company_role(p_company, 'editor'::public.company_role) then
+    raise exception 'You do not have permission to edit this company profile' using errcode = '42501';
+  end if;
+
+  -- Serialise company-level changes; check role again after acquiring the lock.
   select c.* into v_company
     from public.companies c
    where c.id = p_company
@@ -84,7 +89,6 @@ begin
   if not found then
     raise exception 'Company not found' using errcode = 'P0002';
   end if;
-
   if not public.has_company_role(p_company, 'editor'::public.company_role) then
     raise exception 'You do not have permission to edit this company profile' using errcode = '42501';
   end if;
