@@ -32,7 +32,6 @@ type PendingInvitation = {
   expires_at: string;
   last_sent_at: string | null;
   send_count: number;
-  isExpired: boolean;
 };
 
 const dateTime = (value: string) =>
@@ -205,9 +204,7 @@ export function CompanyTeamManagement({
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="break-words text-base font-semibold">{invitation.full_name || "Invited colleague"}</h3>
-                      <Badge tone={invitation.isExpired ? "warning" : "indigo"}>
-                        {invitation.isExpired ? "Expired" : "Awaiting acceptance"}
-                      </Badge>
+                      <Badge tone="indigo">Awaiting acceptance</Badge>
                       <Badge tone="neutral">{COMPANY_ROLE_LABELS[invitation.role]}</Badge>
                     </div>
                     <p className="mt-1 break-all text-sm text-ink-muted">{invitation.email}</p>
@@ -221,14 +218,12 @@ export function CompanyTeamManagement({
                   </div>
 
                   <div className="flex flex-wrap gap-2">
-                    {!invitation.isExpired && (
-                      <form action={resendAction}>
-                        <input type="hidden" name="invitationId" value={invitation.id} />
-                        <Button type="submit" size="sm" variant="secondary" loading={resending} disabled={!emailConfigured}>
-                          {invitation.last_sent_at ? "Resend invitation" : "Retry email"}
-                        </Button>
-                      </form>
-                    )}
+                    <form action={resendAction}>
+                      <input type="hidden" name="invitationId" value={invitation.id} />
+                      <Button type="submit" size="sm" variant="secondary" loading={resending} disabled={!emailConfigured}>
+                        {invitation.last_sent_at ? "Resend invitation" : "Retry email"}
+                      </Button>
+                    </form>
                     <form
                       action={revokeAction}
                       onSubmit={(event) => {
