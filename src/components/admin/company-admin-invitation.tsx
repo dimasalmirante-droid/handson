@@ -70,10 +70,7 @@ export function CompanyAdminInvitationPanel({
     {},
   );
 
-  const activeInvitation =
-    invitation?.status === "pending" && new Date(invitation.expires_at).getTime() > Date.now()
-      ? invitation
-      : null;
+  const activeInvitation = invitation?.status === "pending" ? invitation : null;
 
   return (
     <div className="flex flex-col gap-5">
@@ -98,7 +95,7 @@ export function CompanyAdminInvitationPanel({
         <div className="flex flex-col gap-4">
           <div className="rounded-[14px] border border-line bg-surface p-5">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge tone="indigo">Invitation pending</Badge>
+              <Badge tone="indigo">Invitation on file</Badge>
               {activeInvitation.last_sent_at ? (
                 <Badge tone="success">Email submitted</Badge>
               ) : (
@@ -127,7 +124,7 @@ export function CompanyAdminInvitationPanel({
             <form action={resendAction}>
               <input type="hidden" name="invitationId" value={activeInvitation.id} />
               <Button type="submit" loading={resending} disabled={!emailConfigured || companyStatus === "suspended"}>
-                {activeInvitation.last_sent_at ? "Resend invitation" : "Retry email"}
+                {activeInvitation.last_sent_at ? "Resend / replace invitation" : "Retry email"}
               </Button>
             </form>
             <form
