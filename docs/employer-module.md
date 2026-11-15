@@ -18,7 +18,7 @@ Design record for the employer module. **Step 1 (foundation), Step 2.1 (the admi
 
 - `/employer/<company-id>/profile` is an internal profile for the employer workspace. It is not the public Employer Page and is not published automatically.
 - The profile contains the company name, official contact email, description, website, industry, country, province/region, city and business phone.
-- The profile opens in a read-only view that presents the saved details. Company Administrators and Editors can choose **Edit company profile** to enter edit mode; **Save changes** returns them to the read-only view with a confirmation, while **Cancel** discards unsaved edits. Viewers can read the profile but cannot edit it.
+- The profile opens in a read-only view that presents the saved details. Company Administrators can choose **Edit company profile** to enter edit mode; **Save changes** returns them to the read-only view with a confirmation, while **Cancel** discards unsaved edits. Reviewers can read the profile but cannot edit it.
 - The permanent slug is displayed but cannot be changed from the profile form. Changing a company name does not change its slug.
 - Updates use `company_update_profile()`, which checks membership and role again in the database, refuses suspended companies, and records an audit event with the list of changed fields (not field values).
 - Profile fields are visible only to members of that company and Handson administrators. The public Employer Page, its approval process and publication history remain a separate future feature.
@@ -42,8 +42,20 @@ Design record for the employer module. **Step 1 (foundation), Step 2.1 (the admi
 - Invitation tokens are random, short-lived and stored only as SHA-256 hashes.
 - The first Company Admin is invited by a Handson administrator. The app does not create an Auth user or grant membership before acceptance.
 - After acceptance, the invited person uses their existing Handson account and the company remains in its current status.
-- The generic acceptance flow supports the existing company roles: `viewer`, `editor` and `company_admin`. Team management will introduce company-admin-scoped invite, resend and revoke operations in a later step.
+- The acceptance flow shows the role assigned to the invitation and supports the employer-facing roles **Reviewer** and **Company Administrator**.
+- Existing Viewer and Editor memberships and pending invitations were converted to Reviewer when Team Management was introduced. The legacy enum labels remain in the database only for compatibility with historical records and older clients.
+- After accepting the first Company Admin invitation, a Company Administrator can invite colleagues from the company workspace.
 - Email is sent by the server through Resend using `Handson <hello@handson.cloud>`. The secret `RESEND_API_KEY` is configured separately for Preview and Production.
+
+## Team management (Step 2.2)
+
+- `/employer/<company-id>/team` is available only to that company's Company Administrators. Reviewers receive a 404 if they try to open it directly.
+- A Company Administrator can invite a colleague as a **Reviewer** or another **Company Administrator**, using the colleague's individual work email, full name and optional job title.
+- Invitations expire after seven days. The invitee uses their existing Handson account; company membership is created only after the invitee accepts the verified-email invitation.
+- The team page lists active members and pending invitations. Company Administrators can resend or revoke pending invitations, change a member's role, and remove a member.
+- Resending rotates the invitation token, immediately invalidating the previous link. Only token hashes are stored.
+- At least one Company Administrator must remain. The database prevents the final Company Administrator from being demoted or removed.
+- **Reviewer** access is read-only for company information. Reviewers cannot edit the company profile or manage team access.
 
 ## Database security rules
 
