@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { companyRegistrationSchema, suggestCompanySlug } from "./validation";
+import { suggestCompanySlug } from "./slug";
+import { companyRegistrationSchema } from "./validation";
 
 describe("suggestCompanySlug", () => {
   it.each([
@@ -14,7 +15,7 @@ describe("suggestCompanySlug", () => {
   });
 
   it("limits suggestions to 80 characters without leaving a trailing hyphen", () => {
-    expect(suggestCompanySlug(`${"a".repeat(79)} b`)).toBe("a".repeat(80));
+    expect(suggestCompanySlug(`${"a".repeat(79)} b`)).toBe("a".repeat(79));
   });
 });
 
