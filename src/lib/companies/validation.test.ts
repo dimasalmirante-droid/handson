@@ -1,5 +1,23 @@
 import { describe, expect, it } from "vitest";
+import { suggestCompanySlug } from "./slug";
 import { companyRegistrationSchema } from "./validation";
+
+describe("suggestCompanySlug", () => {
+  it.each([
+    ["Sabor Doce", "sabor-doce"],
+    ["Vodacom Moçambique", "vodacom-mocambique"],
+    ["Pão & Companhia", "pao-companhia"],
+    ["  ACME, Lda.  ", "acme-lda"],
+    ["Several   spaces", "several-spaces"],
+    ["!!!", ""],
+  ])("suggests a clean slug for %s", (name, expected) => {
+    expect(suggestCompanySlug(name)).toBe(expected);
+  });
+
+  it("limits suggestions to 80 characters without leaving a trailing hyphen", () => {
+    expect(suggestCompanySlug(`${"a".repeat(79)} b`)).toBe("a".repeat(79));
+  });
+});
 
 describe("companyRegistrationSchema", () => {
   it("trims the company name, normalises the slug and clears an empty note", () => {

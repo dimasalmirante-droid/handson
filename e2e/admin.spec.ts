@@ -11,6 +11,21 @@ test.describe("admin journey", () => {
     await expect(page.getByText("Registered students")).toBeVisible();
   });
 
+  test("employer slug is suggested and a manual edit is preserved", async ({ page }) => {
+    await logIn(page, admin);
+    await page.goto("/admin/employers");
+
+    const companyName = page.getByLabel("Company name");
+    const slug = page.getByLabel("Public page slug");
+
+    await companyName.fill("Sabor Doce");
+    await expect(slug).toHaveValue("sabor-doce");
+
+    await slug.fill("sabor-doce-mz");
+    await companyName.fill("Sabor Doce Moçambique");
+    await expect(slug).toHaveValue("sabor-doce-mz");
+  });
+
   test("search, filter and open a student profile", async ({ page }) => {
     test.skip(!hasStudent, "Needs the student test account to search for");
     await logIn(page, admin);
