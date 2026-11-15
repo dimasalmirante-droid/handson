@@ -479,7 +479,7 @@ describe("first Company Admin invitation lifecycle", () => {
     expect(revoked.rows[0]).toMatchObject({ status: "revoked", revoked_by: ADMIN });
     expect(revoked.rows[0].revoked_at).toBeTruthy();
 
-    const person = await signUp(db, { email: "withdrawn@example.com", provider: "google" });
+    const person = await signUp(db, { email: "withdrawn.first.admin@example.com", provider: "google" });
     await expectDenied(db, person, "select public.accept_invitation($1)", [first.hash], /withdrawn/);
     const second = await inviteFirstCompanyAdmin(company, "new.person@example.com");
     expect(second.id).not.toBe(first.id);
