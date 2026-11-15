@@ -99,7 +99,7 @@ export function CompanyAdminInvitationPanel({
           <div className="rounded-[14px] border border-line bg-surface p-5">
             <div className="flex flex-wrap items-center gap-2">
               <Badge tone="indigo">Invitation pending</Badge>
-              {activeInvitation.send_count > 0 ? (
+              {activeInvitation.last_sent_at ? (
                 <Badge tone="success">Email sent</Badge>
               ) : (
                 <Badge tone="warning">Email not confirmed as sent</Badge>
@@ -127,7 +127,7 @@ export function CompanyAdminInvitationPanel({
             <form action={resendAction}>
               <input type="hidden" name="invitationId" value={activeInvitation.id} />
               <Button type="submit" loading={resending} disabled={!emailConfigured || companyStatus === "suspended"}>
-                {activeInvitation.send_count > 0 ? "Resend invitation" : "Retry email"}
+                {activeInvitation.last_sent_at ? "Resend invitation" : "Retry email"}
               </Button>
             </form>
             <form
