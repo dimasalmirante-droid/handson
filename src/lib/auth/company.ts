@@ -4,7 +4,7 @@ import { getContexts } from "@/lib/auth/contexts";
 import type { CompanyRole, Contexts } from "@/lib/auth/destination";
 import { requireUser, type CurrentUser } from "@/lib/auth/session";
 
-const RANK: Record<CompanyRole, number> = { viewer: 1, editor: 2, company_admin: 3 };
+const RANK: Record<CompanyRole, number> = { reviewer: 1, company_admin: 2 };
 
 export function companyRoleAtLeast(role: CompanyRole | null | undefined, min: CompanyRole): boolean {
   return !!role && RANK[role] >= RANK[min];
@@ -20,7 +20,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
  */
 export async function requireCompanyRole(
   companyId: string,
-  min: CompanyRole = "viewer",
+  min: CompanyRole = "reviewer",
 ): Promise<{ user: CurrentUser; company: Contexts["companies"][number] }> {
   if (!UUID.test(companyId)) notFound();
   const user = await requireUser(`/employer/${companyId}`);
