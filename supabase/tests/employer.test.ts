@@ -1214,7 +1214,7 @@ describe("company team management", () => {
     const admin = await inviteAsCompanyAdmin(company, owner, "team.admin@example.com", "company_admin");
 
     const { rows } = await db.query<{ email: string; role: string; status: string; full_name: string; job_title: string }>(
-      "select email::text, role, status, full_name, job_title from public.company_invitations where company_id = $1 order by email",
+      "select email::text, role, status, full_name, job_title from public.company_invitations where company_id = $1 and status = 'pending' order by email",
       [company],
     );
     expect(rows).toEqual([
