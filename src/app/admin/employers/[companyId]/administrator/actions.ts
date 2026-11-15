@@ -172,24 +172,52 @@ export async function resendFirstCompanyAdminInvitation(
 
   if (invitationError || !invitation) return { message: "This invitation could not be found." };
   if (invitation.status !== "pending") return { message: "Only a pending invitation can be resent." };
-  if (new Date(invitation.expires_at).getTime() <= Date.now()) {
-    return { message: "This invitation has expired. Create a new invitation instead." };
-  }
 
   const { data: company, error: companyError } = await loadCompany(supabase, companyId);
   if (companyError || !company) return { message: "This employer could not be found." };
 
   const token = generateInvitationToken();
   const expiresAt = invitationExpiry();
-  const { error } = await supabase.rpc("admin_resend_invitation", {
-    p_invitation: invitationId,
-    p_token_hash: token.hash,
-    p_expires_at: expiresAt.toISOString(),
-  });
-  if (error) return { message: databaseMessage(error, "The invitation could not be prepared for resend.") };
+  let replacedExpiredInvitation = new Date(invitation.expires_at).getTime() <= Date.now();
+  let targetInvitationId = invitationId;
+
+  if (!replacedExpiredInvitation) {
+    const { error } = await supabase.rpc("admin_resend_invitation", {
+      p_invitation: invitationId,
+      p_token_hash: token.hash,
+      p_expires_at: expiresAt.toISOString(),
+    });
+
+    // The invitation could expire between the read above and the locked
+    // database operation. In that case, create a new invitation below.
+    if (error && /expired/i.test(error.message)) {
+      replacedExpiredInvitation = true;
+    } else if (error) {
+      return { message: databaseMessage(error, "The invitation could not be prepared for resend.") };
+    }
+  }
+
+  if (replacedExpiredInvitation) {
+    const { data, error } = await supabase.rpc("admin_invite_first_company_admin", {
+      p_company: companyId,
+      p_email: invitation.email,
+      p_full_name: invitation.full_name,
+      p_job_title: invitation.job_title,
+      p_token_hash: token.hash,
+      p_expires_at: expiresAt.toISOString(),
+    });
+    if (error || typeof data !== "string") {
+      return {
+        message: error
+          ? databaseMessage(error, "The expired invitation could not be replaced.")
+          : "The expired invitation could not be replaced.",
+      };
+    }
+    targetInvitationId = data;
+  }
 
   const emailError = await emailInvitation({
-    invitationId,
+    invitationId: targetInvitationId,
     token: token.token,
     tokenHash: token.hash,
     email: invitation.email,
@@ -199,18 +227,24 @@ export async function resendFirstCompanyAdminInvitation(
   });
   if (emailError) {
     revalidatePath(`/admin/employers/${companyId}/administrator`);
-    return { message: `The previous link has been invalidated, but the new email was not sent: ${emailError} Retry to generate and send another link.` };
+    return {
+      message: replacedExpiredInvitation
+        ? `A new invitation was created, but its email was not submitted: ${emailError} Use Retry email to send a fresh link.`
+        : `The previous link has been invalidated, but the new email was not submitted: ${emailError} Use Retry email to send another link.`,
+    };
   }
 
-  const recorded = await markInvitationSent(supabase, invitationId);
+  const recorded = await markInvitationSent(supabase, targetInvitationId);
   revalidatePath(`/admin/employers/${companyId}/administrator`);
   revalidatePath("/admin/employers");
 
   return {
     ok: true,
-    message: recorded
-      ? `Resend accepted a fresh invitation email request for ${invitation.email}. The previous link no longer works.`
-      : "The new invitation email was sent, but its delivery record could not be updated. Refresh before retrying.",
+    message: !recorded
+      ? "The invitation email request was accepted, but its send record could not be updated. Refresh before retrying."
+      : replacedExpiredInvitation
+        ? `The expired invitation was replaced. Resend accepted a new invitation email request for ${invitation.email}.`
+        : `Resend accepted a fresh invitation email request for ${invitation.email}. The previous link no longer works.`,
   };
 }
 
