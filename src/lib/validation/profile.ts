@@ -52,6 +52,8 @@ export function zodFieldErrors(error: z.ZodError): FieldErrors {
 /* ------------------------------------------------------------------ */
 
 export const GENDERS = ["female", "male", "other", "prefer_not_to_say"] as const;
+export const HEADLINE_MAX = 120;
+export const SUMMARY_MAX = 600;
 
 const personalBase = z.object({
   firstName: opt(personName),
@@ -67,7 +69,12 @@ const personalBase = z.object({
   nationality: opt(z.string().refine(isCountryCode, "Select a country.")),
   country: opt(z.string().refine(isCountryCode, "Select a country.")),
   provinceId: opt(z.coerce.number().int().positive("Select a province.")),
-  city: opt(z.string().trim().min(2, "Enter your city or district.").max(100, "Too long.")),
+  districtId: opt(z.coerce.number().int().positive("Select a district.")),
+  city: opt(z.string().trim().min(2, "Enter your city or town.").max(100, "Too long.")),
+  headline: opt(
+    z.string().trim().min(2, "Write a short headline.").max(HEADLINE_MAX, `Keep your headline under ${HEADLINE_MAX} characters.`),
+  ),
+  summary: opt(z.string().trim().min(2, "Write a few words.").max(SUMMARY_MAX, `Keep your summary under ${SUMMARY_MAX} characters.`)),
   phoneDial: opt(z.string().regex(/^\+\d{1,4}$/)),
   phoneNumber: opt(z.string().trim().max(20)),
   linkedinUrl: opt(linkedinUrl),
@@ -102,12 +109,28 @@ export const personalRequiredSchema = personalDraftSchema.superRefine((v, ctx) =
   need("dateOfBirth", "Enter your date of birth.");
   need("nationality", "Select your nationality.");
   need("country", "Select the country where you live.");
-  if ((v.country ?? "MZ") === "MZ") need("provinceId", "Select your province.");
-  need("city", "Enter your city or district.");
+  const inMozambique = (v.country ?? "MZ") === "MZ";
+  if (inMozambique) need("provinceId", "Select your province.");
+  if (inMozambique && v.districtId === undefined && v.city === undefined) {
+    ctx.addIssue({ code: "custom", path: ["districtId"], message: "Select your district, or choose “Not listed” and type your city." });
+  }
+  if (!inMozambique) need("city", "Enter your city or town.");
+  need("headline", "Write a short professional headline.");
   if (!v.phone) ctx.addIssue({ code: "custom", path: ["phoneNumber"], message: "Enter your phone number." });
 });
 
 export type PersonalInput = z.infer<typeof personalDraftSchema>;
+
+/* ------------------------------------------------------------------ */
+/* Languages (Step 3, with skills)                                     */
+/* ------------------------------------------------------------------ */
+
+export const LANGUAGE_LEVELS = ["basic", "intermediate", "advanced", "fluent", "native"] as const;
+
+export const languageSchema = z.object({
+  languageId: z.coerce.number({ error: "Select a language." }).int().positive("Select a language."),
+  level: z.enum(LANGUAGE_LEVELS, { error: "Select your level." }),
+});
 
 /* ------------------------------------------------------------------ */
 /* Step 2 · Education                                                  */

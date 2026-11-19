@@ -85,6 +85,7 @@ export default async function ReviewPage({ searchParams }: PageProps<"/onboardin
   const countryName = (code: string | null) =>
     [...countries.priority, ...countries.rest].find((c) => c.code === code)?.name ?? code ?? "";
   const province = catalogues.provinces.find((p) => p.id === profile.province_id)?.name;
+  const district = catalogues.districts.find((d) => d.id === profile.district_id)?.name;
   const names = (ids: number[], list: { id: number; name: string }[]) =>
     ids.map((id) => list.find((x) => x.id === id)?.name).filter(Boolean).join(", ");
   const finished = !!profile.onboarding_completed_at;
@@ -105,8 +106,9 @@ export default async function ReviewPage({ searchParams }: PageProps<"/onboardin
       <div className="rounded-[16px] border border-line p-5 sm:p-6">
         <Section id="personal" {...s.personal}>
           <p className="font-medium">{[profile.first_name, profile.middle_name, profile.surname].filter(Boolean).join(" ") || "Name not added"}</p>
+          {profile.headline && <p>{profile.headline}</p>}
           <p className="text-ink-muted">
-            {[profile.city, province, countryName(profile.country_code)].filter(Boolean).join(", ")}
+            {[district ?? profile.city, province, countryName(profile.country_code)].filter(Boolean).join(", ")}
             {profile.phone ? ` · ${profile.phone}` : ""}
           </p>
         </Section>

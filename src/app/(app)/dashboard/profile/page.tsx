@@ -26,7 +26,10 @@ export default async function ProfilePage() {
     nationality: profile?.nationality_code ?? "",
     country: profile?.country_code ?? "MZ",
     provinceId: profile?.province_id ? String(profile.province_id) : "",
+    districtId: profile?.district_id ? String(profile.district_id) : profile?.city && (profile?.country_code ?? "MZ") === "MZ" ? "other" : "",
     city: profile?.city ?? "",
+    headline: profile?.headline ?? "",
+    summary: profile?.summary ?? "",
     phoneDial: phone.dial,
     phoneNumber: phone.national,
     linkedinUrl: profile?.linkedin_url ?? "",
@@ -43,6 +46,7 @@ export default async function ProfilePage() {
             initial={initial}
             countries={countryOptions("en")}
             provinces={catalogues.provinces}
+            districts={catalogues.districts}
           />
         </Panel>
         <Panel title="Professional interests" id="interests">

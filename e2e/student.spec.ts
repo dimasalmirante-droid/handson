@@ -18,15 +18,15 @@ test.describe("student journey", () => {
   test("personal details autosave and persist across sessions", async ({ page }) => {
     await logIn(page, student);
     await page.goto("/onboarding/personal");
-    const city = `Maputo ${Date.now() % 1000}`;
-    await page.getByLabel("City or district").fill(city);
-    await page.getByLabel("City or district").blur();
+    const headline = `Finalista de Gestão ${Date.now() % 1000}`;
+    await page.locator("#headline").fill(headline);
+    await page.locator("#headline").blur();
     await expect(page.getByText("All changes saved")).toBeVisible({ timeout: 15_000 });
 
     await logOut(page);
     await logIn(page, student);
     await page.goto("/onboarding/personal");
-    await expect(page.getByLabel("City or district")).toHaveValue(city);
+    await expect(page.locator("#headline")).toHaveValue(headline);
   });
 
   test("rejects an invalid Mozambican phone number", async ({ page }) => {

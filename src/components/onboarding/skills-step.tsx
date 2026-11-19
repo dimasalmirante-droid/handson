@@ -7,9 +7,10 @@ import { SearchPicker, StepFooter } from "@/components/onboarding/wizard";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/feedback";
 import { Field, Select } from "@/components/ui/field";
+import { LanguagesSection } from "@/components/onboarding/languages-section";
 import { cn } from "@/lib/cn";
-import type { Skill, SkillCategory } from "@/lib/data/catalogues";
-import type { StudentSkill } from "@/lib/data/student";
+import type { Language, Skill, SkillCategory } from "@/lib/data/catalogues";
+import type { StudentLanguage, StudentSkill } from "@/lib/data/student";
 
 const LEVELS = [
   { value: "beginner", label: "Beginner", hint: "Learning the basics" },
@@ -22,12 +23,16 @@ export function SkillsStep({
   mine,
   skills,
   categories,
+  myLanguages,
+  languages,
   embedded = false,
 }: {
   embedded?: boolean;
   mine: StudentSkill[];
   skills: Skill[];
   categories: SkillCategory[];
+  myLanguages: StudentLanguage[];
+  languages: Language[];
 }) {
   const router = useRouter();
   const [level, setLevel] = useState("intermediate");
@@ -151,6 +156,8 @@ export function SkillsStep({
           </ul>
         )}
       </section>
+
+      <LanguagesSection mine={myLanguages} languages={languages} />
 
       {!embedded && <StepFooter back="/onboarding/education" onContinue={() => continueFrom(3)} />}
     </div>
