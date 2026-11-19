@@ -2,12 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { signOutAction } from "@/app/(auth)/actions";
 import { PageHeader, Panel } from "@/components/dashboard/page-header";
+import { PublicProfileForm } from "@/components/dashboard/public-profile-form";
 import { EmailForm, PasswordForm, VisibilityToggle } from "@/components/dashboard/settings-forms";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/feedback";
+import { requestOrigin } from "@/lib/auth/origin";
 import { requireStudent } from "@/lib/auth/session";
 import { getConsentHistory, getProfile } from "@/lib/data/student";
 import { site } from "@/lib/site";
+import { suggestSlug } from "@/lib/validation/profile";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -15,6 +18,7 @@ const CONSENT_LABELS: Record<string, string> = {
   terms: "Terms and Conditions",
   privacy: "Privacy Policy",
   employer_visibility: "Employer visibility",
+  public_profile: "Public profile link",
   marketing: "Marketing messages",
 };
 
@@ -23,7 +27,7 @@ const dateTime = (iso: string) =>
 
 export default async function SettingsPage({ searchParams }: PageProps<"/dashboard/settings">) {
   const user = await requireStudent("/dashboard/settings");
-  const [profile, history, sp] = await Promise.all([getProfile(user.id), getConsentHistory(user.id), searchParams]);
+  const [profile, history, sp, origin] = await Promise.all([getProfile(user.id), getConsentHistory(user.id), searchParams, requestOrigin()]);
   const usesPassword = user.provider === "email";
 
   return (
@@ -67,6 +71,18 @@ export default async function SettingsPage({ searchParams }: PageProps<"/dashboa
             Read how we handle your information in our{" "}
             <a href={site.links.privacy} className="font-semibold text-indigo hover:underline">Privacy Policy</a>.
           </p>
+        </Panel>
+
+        <Panel title="Public profile" id="public-profile">
+          <PublicProfileForm
+            initial={{
+              enabled: profile?.public_profile_enabled ?? false,
+              slug: profile?.public_slug ?? null,
+              sections: profile?.public_sections ?? [],
+            }}
+            suggestedSlug={suggestSlug(profile?.first_name, profile?.surname)}
+            baseUrl={origin}
+          />
         </Panel>
 
         <Panel title="Email address">

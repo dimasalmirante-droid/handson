@@ -6,6 +6,7 @@ import { requestOrigin } from "@/lib/auth/origin";
 import { requireStudent } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { PASSWORD_MIN } from "@/lib/validation/auth";
+import { publicProfileSchema } from "@/lib/validation/profile";
 
 export type SettingsResult = { ok: boolean; message?: string; fields?: Partial<Record<string, string>> };
 
@@ -26,6 +27,39 @@ export async function setEmployerVisibility(granted: boolean): Promise<SettingsR
     message: granted
       ? "Your profile can now be shown to verified employers when that feature opens."
       : "Your profile is private. Employers cannot see it.",
+  };
+}
+
+/** Current version of the public-profile consent wording. Bump when it changes. */
+const PUBLIC_PROFILE_CONSENT_VERSION = "2026-11";
+
+export async function setPublicProfile(input: { enabled: boolean; slug: string; sections: string[] }): Promise<SettingsResult & { slug?: string | null }> {
+  await requireStudent("/dashboard/settings");
+  const parsed = publicProfileSchema.safeParse(input);
+  if (!parsed.success) {
+    const fields: Partial<Record<string, string>> = {};
+    for (const issue of parsed.error.issues) fields[String(issue.path[0] ?? "form")] ??= issue.message;
+    return { ok: false, fields };
+  }
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("set_public_profile", {
+    p_enabled: parsed.data.enabled,
+    p_slug: parsed.data.slug || null,
+    p_sections: parsed.data.sections,
+    p_version: PUBLIC_PROFILE_CONSENT_VERSION,
+  });
+  if (error) {
+    if (error.code === "23505") return { ok: false, fields: { slug: "This address is already taken. Try another." } };
+    if (error.code === "22023") return { ok: false, fields: { slug: "This address is not available. Try another." } };
+    console.error("set_public_profile failed", error.code, error.message);
+    return { ok: false, message: "Your public profile could not be updated. Please try again." };
+  }
+  revalidatePath("/dashboard", "layout");
+  if (data) revalidatePath(`/p/${data}`);
+  return {
+    ok: true,
+    slug: (data as string | null) ?? null,
+    message: parsed.data.enabled ? "Your public profile is live. Share the link with employers." : "Your public profile is off. The link no longer works.",
   };
 }
 

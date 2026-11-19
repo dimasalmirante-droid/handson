@@ -17,6 +17,12 @@ test.describe("public pages @mobile", () => {
     await expectNoHorizontalScroll(page);
   });
 
+  test("an unknown or switched-off public profile is not found and not indexed", async ({ page }) => {
+    const res = await page.goto("/p/no-such-profile-e2e");
+    expect(res?.status()).toBe(404);
+    await expect(page.locator('meta[name="robots"]').first()).toHaveAttribute("content", /noindex/);
+  });
+
   test("login page renders", async ({ page }) => {
     await page.goto("/login");
     await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();

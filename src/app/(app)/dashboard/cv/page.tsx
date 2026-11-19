@@ -54,6 +54,9 @@ export default async function CvPage() {
         <ButtonLink href="/cv?lang=en&download=1" prefetch={false} variant="secondary">Download CV (English)</ButtonLink>
         <ButtonLink href="/cv" prefetch={false} variant="ghost" target="_blank" rel="noopener">Open PDF</ButtonLink>
       </div>
+      <p className="mb-6 text-[15px] text-ink-muted">
+        Prefer to send a link? <Link className="font-semibold text-indigo hover:underline" href="/dashboard/settings#public-profile">Turn on your public profile</Link>.
+      </p>
 
       {gaps.length > 0 && (
         <Alert tone="warning" className="mb-6" title="Your CV will be stronger if you:">

@@ -29,6 +29,9 @@ export type StudentProfile = {
   github_url: string | null;
   portfolio_url: string | null;
   employer_visibility: boolean;
+  public_profile_enabled: boolean;
+  public_slug: string | null;
+  public_sections: string[];
   verification_status: string;
   onboarding_step: number;
   onboarding_completed_at: string | null;
@@ -98,7 +101,7 @@ export type DocumentRecord = {
 };
 
 const PROFILE_COLUMNS =
-  "id, email, first_name, middle_name, surname, date_of_birth, gender, nationality_code, country_code, province_id, city, district_id, headline, summary, phone, photo_path, linkedin_url, github_url, portfolio_url, employer_visibility, verification_status, onboarding_step, onboarding_completed_at";
+  "id, email, first_name, middle_name, surname, date_of_birth, gender, nationality_code, country_code, province_id, city, district_id, headline, summary, phone, photo_path, linkedin_url, github_url, portfolio_url, employer_visibility, public_profile_enabled, public_slug, public_sections, verification_status, onboarding_step, onboarding_completed_at";
 
 /* All loaders below run as the signed-in user: Row Level Security limits them to their own rows. */
 

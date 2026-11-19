@@ -122,6 +122,51 @@ export const personalRequiredSchema = personalDraftSchema.superRefine((v, ctx) =
 export type PersonalInput = z.infer<typeof personalDraftSchema>;
 
 /* ------------------------------------------------------------------ */
+/* Public profile                                                      */
+/* ------------------------------------------------------------------ */
+
+export const PUBLIC_SECTIONS = ["photo", "headline", "summary", "location", "education", "experience", "skills", "languages", "linkedin"] as const;
+export type PublicSection = (typeof PUBLIC_SECTIONS)[number];
+
+/** Must match the reserved list in set_public_profile(). */
+export const RESERVED_SLUGS = [
+  "admin", "api", "app", "auth", "dashboard", "employer", "employers", "handson", "help", "invite", "legal", "login",
+  "onboarding", "p", "privacy", "register", "settings", "start", "support", "terms", "workspaces",
+];
+
+/** "Amina Macuácua" → "amina-macuacua". */
+export function suggestSlug(...parts: (string | null | undefined)[]): string {
+  return parts
+    .filter(Boolean)
+    .join(" ")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40)
+    .replace(/-+$/g, "");
+}
+
+export const publicProfileSchema = z
+  .object({
+    enabled: z.boolean(),
+    slug: z.preprocess(
+      (v) => (typeof v === "string" ? v.trim().toLowerCase() : v),
+      z
+        .string()
+        .max(40, "Use at most 40 characters.")
+        .refine((v) => v === "" || v.length >= 3, "Use at least 3 characters.")
+        .refine((v) => v === "" || /^[a-z0-9]+(-[a-z0-9]+)*$/.test(v), "Use lowercase letters, numbers and single hyphens only.")
+        .refine((v) => !RESERVED_SLUGS.includes(v), "This address is not available. Try another."),
+    ),
+    sections: z.array(z.enum(PUBLIC_SECTIONS)).max(PUBLIC_SECTIONS.length),
+  })
+  .superRefine((v, ctx) => {
+    if (v.enabled && !v.slug) ctx.addIssue({ code: "custom", path: ["slug"], message: "Choose an address for your public profile." });
+  });
+
+/* ------------------------------------------------------------------ */
 /* Languages (Step 3, with skills)                                     */
 /* ------------------------------------------------------------------ */
 
