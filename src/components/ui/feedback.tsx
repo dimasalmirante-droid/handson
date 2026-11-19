@@ -1,4 +1,5 @@
 import type { ComponentProps, ReactNode } from "react";
+import { T } from "@/i18n/client";
 import { cn } from "@/lib/cn";
 
 /* ---------- Card ---------- */
@@ -25,7 +26,7 @@ const badgeTones: Record<Tone, string> = {
   danger: "bg-danger-soft text-danger",
 };
 
-export function Badge({ tone = "neutral", className, ...props }: ComponentProps<"span"> & { tone?: Tone }) {
+export function Badge({ tone = "neutral", className, children, ...props }: ComponentProps<"span"> & { tone?: Tone }) {
   return (
     <span
       className={cn(
@@ -34,7 +35,9 @@ export function Badge({ tone = "neutral", className, ...props }: ComponentProps<
         className,
       )}
       {...props}
-    />
+    >
+      <T>{children}</T>
+    </span>
   );
 }
 
@@ -45,15 +48,16 @@ type ProgressProps = { value: number; label: string; showValue?: boolean; classN
 /** Accessible progress bar; `value` is clamped to 0–100. */
 export function Progress({ value, label, showValue = true, className }: ProgressProps) {
   const v = Math.max(0, Math.min(100, Math.round(value)));
+  const labelId = `progress-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
   return (
     <div className={cn("w-full", className)}>
       <div className="mb-2 flex items-baseline justify-between text-sm font-semibold">
-        <span>{label}</span>
+        <span id={labelId}><T>{label}</T></span>
         {showValue && <span className="tabular-nums">{v}%</span>}
       </div>
       <div
         role="progressbar"
-        aria-label={label}
+        aria-labelledby={labelId}
         aria-valuenow={v}
         aria-valuemin={0}
         aria-valuemax={100}
@@ -93,8 +97,8 @@ export function Alert({ tone = "info", title, children, className }: AlertProps)
         {t.symbol}
       </span>
       <div>
-        {title && <p className="font-semibold">{title}</p>}
-        {children && <div className={cn(title && "mt-0.5 text-ink-muted")}>{children}</div>}
+        {title && <p className="font-semibold"><T>{title}</T></p>}
+        {children && <div className={cn(title && "mt-0.5 text-ink-muted")}><T>{children}</T></div>}
       </div>
     </div>
   );
@@ -120,9 +124,9 @@ export function Stepper({ steps, className }: { steps: Step[]; className?: strin
             {s.status === "complete" ? "✓" : i + 1}
           </span>
           <span className={cn("font-medium", s.status === "upcoming" ? "text-ink-muted" : "text-ink")}>
-            {s.label}
+            <T>{s.label}</T>
             <span className="sr-only">
-              {s.status === "complete" ? " (complete)" : s.status === "current" ? " (current step)" : ""}
+              {s.status === "complete" ? <> (<T>complete</T>)</> : s.status === "current" ? <> (<T>current step</T>)</> : ""}
             </span>
           </span>
         </li>
@@ -136,8 +140,8 @@ export function Stepper({ steps, className }: { steps: Step[]; className?: strin
 export function EmptyState({ title, children, action }: { title: string; children?: ReactNode; action?: ReactNode }) {
   return (
     <div className="flex flex-col items-center rounded-[var(--radius-lg)] border border-dashed border-line-strong bg-surface-raised px-6 py-12 text-center">
-      <p className="font-display text-xl font-bold">{title}</p>
-      {children && <div className="mt-2 max-w-md text-ink-muted">{children}</div>}
+      <p className="font-display text-xl font-bold"><T>{title}</T></p>
+      {children && <div className="mt-2 max-w-md text-ink-muted"><T>{children}</T></div>}
       {action && <div className="mt-6">{action}</div>}
     </div>
   );

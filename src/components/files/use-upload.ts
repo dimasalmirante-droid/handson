@@ -5,6 +5,7 @@ import { useState } from "react";
 import { finalizeUpload, prepareUpload } from "@/app/(app)/files/actions";
 import { FILE_RULES, checkFileMeta, contentMatches, formatFor, type FileKind } from "@/lib/files";
 import { createClient } from "@/lib/supabase/client";
+import type { TFunction } from "@/i18n/translate";
 
 export type UploadState =
   | { phase: "idle" }
@@ -66,16 +67,16 @@ export function useUpload(kind: FileKind, documentType?: string) {
   return { state, upload, reset: () => setState({ phase: "idle" }) };
 }
 
-export function uploadStatusText(state: UploadState): string | null {
+export function uploadStatusText(state: UploadState, t: TFunction): string | null {
   switch (state.phase) {
     case "checking":
-      return `Checking ${state.fileName}…`;
+      return t("Checking {file}…", { file: state.fileName });
     case "uploading":
-      return `Uploading ${state.fileName}…`;
+      return t("Uploading {file}…", { file: state.fileName });
     case "verifying":
-      return `Verifying ${state.fileName}…`;
+      return t("Verifying {file}…", { file: state.fileName });
     case "done":
-      return `${state.fileName} uploaded.`;
+      return t("{file} uploaded.", { file: state.fileName });
     default:
       return null;
   }

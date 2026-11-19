@@ -1,4 +1,5 @@
 import { formatDate, legalBlocks } from "@/lib/legal";
+import { T } from "@/i18n/client";
 
 /** A legal document's text, rendered as plain text with headings (never as HTML). */
 export function LegalDocumentView({
@@ -16,7 +17,7 @@ export function LegalDocumentView({
     <article className="min-w-0">
       <h1 className="text-[clamp(28px,4vw,40px)] tracking-[-0.03em]">{title}</h1>
       <p className="mt-2 text-sm text-ink-muted">
-        Version {version} · Effective {formatDate(effectiveAt)}
+        <T>{"Version"}</T>{" "}{version}{" "}<T>{"· Effective"}</T>{" "}{formatDate(effectiveAt)}
       </p>
       <div className="mt-8 flex flex-col gap-4 text-[16px] leading-relaxed">
         {legalBlocks(body).map((b, i) =>

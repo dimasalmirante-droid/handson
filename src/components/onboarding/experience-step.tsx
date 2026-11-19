@@ -10,6 +10,8 @@ import { Checkbox, Field, Input, Select, Textarea, describedBy } from "@/compone
 import type { ExperienceRecord } from "@/lib/data/student";
 import { EXPERIENCE_LABELS } from "@/lib/onboarding/labels";
 import type { FieldErrors } from "@/lib/validation/profile";
+import { T, useLocale, useT } from "@/i18n/client";
+import { LOCALE_TAGS, type Locale } from "@/i18n/config";
 
 type Values = Record<string, string>;
 
@@ -18,8 +20,8 @@ const EMPTY: Values = {
   isCurrent: "", description: "", achievements: "",
 };
 
-const monthLabel = (d: string | null) =>
-  d ? new Date(`${d}T00:00:00`).toLocaleDateString("en-GB", { month: "short", year: "numeric" }) : "";
+const monthLabel = (d: string | null, locale: Locale) =>
+  d ? new Date(`${d}T00:00:00`).toLocaleDateString(LOCALE_TAGS[locale], { month: "short", year: "numeric" }) : "";
 
 function toValues(r: ExperienceRecord): Values {
   return {
@@ -34,6 +36,8 @@ export function ExperienceStep({ userId, records, embedded = false }: { userId: 
   const [editing, setEditing] = useState<Values | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [deleting, startDelete] = useTransition();
+  const t = useT();
+  const locale = useLocale();
 
   return (
     <div>
@@ -47,18 +51,18 @@ export function ExperienceStep({ userId, records, embedded = false }: { userId: 
                 <p className="font-semibold">{r.role_title}</p>
                 <p className="text-[15px] text-ink-muted">{r.organisation}{r.location ? ` · ${r.location}` : ""}</p>
                 <p className="mt-1 text-sm text-ink-muted">
-                  {monthLabel(r.start_date)} – {r.is_current ? "Present" : monthLabel(r.end_date)}
+                  {monthLabel(r.start_date, locale)} – {r.is_current ? t("Present") : monthLabel(r.end_date, locale)}
                 </p>
                 <Badge className="mt-2">{EXPERIENCE_LABELS[r.experience_type]}</Badge>
               </div>
               <div className="flex gap-2">
-                <Button size="sm" variant="secondary" onClick={() => { setMessage(null); setEditing(toValues(r)); }}>Edit</Button>
+                <Button size="sm" variant="secondary" onClick={() => { setMessage(null); setEditing(toValues(r)); }}><T>{"Edit"}</T></Button>
                 <Button
                   size="sm"
                   variant="ghost"
                   disabled={deleting}
                   onClick={() => {
-                    if (!window.confirm("Remove this experience?")) return;
+                    if (!window.confirm(t("Remove this experience?"))) return;
                     startDelete(async () => {
                       const res = await deleteExperience(r.id);
                       setMessage(res.ok ? "Experience removed." : res.error ?? null);
@@ -66,7 +70,7 @@ export function ExperienceStep({ userId, records, embedded = false }: { userId: 
                     });
                   }}
                 >
-                  Remove
+                  <T>{"Remove"}</T>
                 </Button>
               </div>
             </li>
@@ -87,12 +91,12 @@ export function ExperienceStep({ userId, records, embedded = false }: { userId: 
           }}
         />
       ) : records.length === 0 ? (
-        <EmptyState title="Add your first experience" action={<Button onClick={() => setEditing({ ...EMPTY })}>Add experience</Button>}>
-          No formal job yet? Internships, volunteering, university projects, student associations and family business work all count.
+        <EmptyState title="Add your first experience" action={<Button onClick={() => setEditing({ ...EMPTY })}><T>{"Add experience"}</T></Button>}>
+          <T>{"No formal job yet? Internships, volunteering, university projects, student associations and family business work all count."}</T>
         </EmptyState>
       ) : (
         records.length < 30 && (
-          <Button variant="secondary" onClick={() => { setMessage(null); setEditing({ ...EMPTY }); }}>+ Add another experience</Button>
+          <Button variant="secondary" onClick={() => { setMessage(null); setEditing({ ...EMPTY }); }}><T>{"+ Add another experience"}</T></Button>
         )
       )}
 
@@ -105,7 +109,7 @@ export function ExperienceStep({ userId, records, embedded = false }: { userId: 
         back="/onboarding/interests"
         note={
           records.length === 0 && !editing ? (
-            <p className="text-sm text-ink-muted">You can continue and add this later. Experience counts for 15% of your profile.</p>
+            <p className="text-sm text-ink-muted"><T>{"You can continue and add this later. Experience counts for 15% of your profile."}</T></p>
           ) : undefined
         }
         onContinue={() => continueFrom(5)}
@@ -133,6 +137,7 @@ function ExperienceForm({
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, startSave] = useTransition();
+  const t = useT();
   const restored = isNew && JSON.stringify(draft) !== JSON.stringify(initial);
   const current = values.isCurrent === "on";
   const thisMonth = new Date().toISOString().slice(0, 7);
@@ -172,24 +177,24 @@ function ExperienceForm({
       }}
     >
       <h2 className="text-xl">{isNew ? "Add experience" : "Edit experience"}</h2>
-      {restored && <p className="mt-1 text-sm text-ink-muted">We restored the details you had started entering.</p>}
+      {restored && <p className="mt-1 text-sm text-ink-muted"><T>{"We restored the details you had started entering."}</T></p>}
       {formError && <Alert tone="danger" className="mt-4">{formError}</Alert>}
 
       <div className="mt-6 grid gap-x-5 gap-y-6 sm:grid-cols-2">
         <Field id="roleTitle" label="Role or title" required error={errors.roleTitle}>
-          <Input id="roleTitle" placeholder="e.g. Finance intern" value={values.roleTitle} onChange={(e) => set({ roleTitle: e.target.value })} {...aria("roleTitle")} />
+          <Input id="roleTitle" placeholder={t("e.g. Finance intern")} value={values.roleTitle} onChange={(e) => set({ roleTitle: e.target.value })} {...aria("roleTitle")} />
         </Field>
         <Field id="organisation" label="Organisation" required error={errors.organisation}>
-          <Input id="organisation" placeholder="Company, NGO, university or association" value={values.organisation} onChange={(e) => set({ organisation: e.target.value })} {...aria("organisation")} />
+          <Input id="organisation" placeholder={t("Company, NGO, university or association")} value={values.organisation} onChange={(e) => set({ organisation: e.target.value })} {...aria("organisation")} />
         </Field>
         <Field id="experienceType" label="Type" required error={errors.experienceType}>
           <Select id="experienceType" value={values.experienceType} onChange={(e) => set({ experienceType: e.target.value })} {...aria("experienceType")}>
-            <option value="">Select</option>
-            {Object.entries(EXPERIENCE_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            <option value="">{t("Select")}</option>
+            {Object.entries(EXPERIENCE_LABELS).map(([v, l]) => <option key={v} value={v}>{t(l)}</option>)}
           </Select>
         </Field>
         <Field id="location" label="Location" hint="Optional" error={errors.location}>
-          <Input id="location" placeholder="e.g. Maputo" value={values.location} onChange={(e) => set({ location: e.target.value })} {...aria("location", true)} />
+          <Input id="location" placeholder={t("e.g. Maputo")} value={values.location} onChange={(e) => set({ location: e.target.value })} {...aria("location", true)} />
         </Field>
         <Field id="startMonth" label="Start date" required error={errors.startMonth}>
           <Input id="startMonth" type="month" max={thisMonth} value={values.startMonth} onChange={(e) => set({ startMonth: e.target.value })} {...aria("startMonth")} />
@@ -217,7 +222,7 @@ function ExperienceForm({
       </div>
 
       <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-        <Button variant="ghost" onClick={() => { if (isNew) clearDraft(); onCancel(); }}>Cancel</Button>
+        <Button variant="ghost" onClick={() => { if (isNew) clearDraft(); onCancel(); }}><T>{"Cancel"}</T></Button>
         <Button type="submit" loading={saving}>{isNew ? "Save experience" : "Save changes"}</Button>
       </div>
     </form>

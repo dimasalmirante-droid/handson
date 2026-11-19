@@ -11,13 +11,20 @@ import { COMPANY_ROLE_LABELS, listWorkspaces, type CompanyRole } from "@/lib/aut
 import { requireUser } from "@/lib/auth/session";
 import { workspacesView } from "@/lib/auth/workspaces-view";
 import { createClient } from "@/lib/supabase/server";
+import { T } from "@/i18n/client";
+import { getT } from "@/i18n/server";
+import { getLocale } from "@/i18n/server";
+import { LOCALE_TAGS, type Locale } from "@/i18n/config";
 
-export const metadata: Metadata = { title: "Your workspaces" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t("Your workspaces") };
+}
 
 type PendingInvitation = { company_name: string; role: CompanyRole; expires_at: string };
 
-const date = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "Africa/Maputo" });
+const date = (iso: string, locale: Locale) =>
+  new Date(iso).toLocaleDateString(LOCALE_TAGS[locale], { day: "numeric", month: "long", year: "numeric", timeZone: "Africa/Maputo" });
 
 export default async function WorkspacesPage() {
   const user = await requireUser("/workspaces");
@@ -26,6 +33,7 @@ export default async function WorkspacesPage() {
   const { data: invitations } = await supabase.rpc("my_pending_invitations");
   const pending = (invitations ?? []) as PendingInvitation[];
   const workspaces = contexts ? listWorkspaces(contexts) : [];
+  const locale = await getLocale();
   const view = workspacesView({ workspaces, hasStudentProfile: !!contexts?.student, pendingInvitations: pending.length });
 
   return (
@@ -54,8 +62,8 @@ export default async function WorkspacesPage() {
                         className="flex w-full items-center justify-between gap-4 rounded-[14px] border border-line px-4 py-3 text-left hover:border-indigo hover:bg-indigo-soft"
                       >
                         <span className="min-w-0">
-                          <span className="block truncate text-[17px] font-semibold">{w.label}</span>
-                          <span className="block text-sm text-ink-muted">{w.detail}</span>
+                          <span className="block truncate text-[17px] font-semibold"><T>{w.label}</T></span>
+                          <span className="block text-sm text-ink-muted"><T>{w.detail}</T></span>
                         </span>
                         <span aria-hidden className="text-indigo">→</span>
                       </button>
@@ -72,11 +80,10 @@ export default async function WorkspacesPage() {
                 {pending.map((inv, i) => (
                   <li key={i} className="rounded-[14px] bg-surface px-4 py-3">
                     <p className="text-[17px] font-semibold">
-                      Join {inv.company_name} <Badge tone="indigo">{COMPANY_ROLE_LABELS[inv.role]}</Badge>
+                      <T>{"Join"}</T>{" "}{inv.company_name} <Badge tone="indigo">{COMPANY_ROLE_LABELS[inv.role]}</Badge>
                     </p>
                     <p className="mt-1 text-sm text-ink-muted">
-                      You have been invited to this company&apos;s employer workspace. To accept, open the invitation link in your email on this
-                      device. The invitation expires on {date(inv.expires_at)}.
+                      <T>{"You have been invited to this company's employer workspace. To accept, open the invitation link in your email on this device. The invitation expires on"}</T>{" "}{date(inv.expires_at, locale)}.
                     </p>
                   </li>
                 ))}
@@ -87,17 +94,17 @@ export default async function WorkspacesPage() {
           {view.showCreateStudentProfile && (
             <Panel title="Student profile">
               <p className="mb-4 text-[15px] text-ink-muted">
-                Build your profile to find internships, traineeships and first jobs.
+                <T>{"Build your profile to find internships, traineeships and first jobs."}</T>
               </p>
               <CreateStudentProfileForm />
             </Panel>
           )}
 
-          {!contexts && <Alert tone="warning">We could not load your workspaces. Please try again in a moment.</Alert>}
+          {!contexts && <Alert tone="warning"><T>{"We could not load your workspaces. Please try again in a moment."}</T></Alert>}
 
           <div>
             <form action={signOutAction}>
-              <Button type="submit" variant="ghost">Sign out</Button>
+              <Button type="submit" variant="ghost"><T>{"Sign out"}</T></Button>
             </form>
           </div>
         </div>

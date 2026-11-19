@@ -78,7 +78,7 @@ export default async function StudentReviewPage({ params }: PageProps<"/admin/st
     getExperiences(id),
     getDocuments(id),
     getConsentHistory(id),
-    getCatalogues(),
+    getCatalogues("en"),
     getPhotoUrl(profile.photo_path),
     supabase.from("profiles").select("account_status, created_at, verified_at").eq("id", id).single(),
     roleAtLeast(role, "super_admin")

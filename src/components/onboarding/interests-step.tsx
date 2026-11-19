@@ -8,6 +8,7 @@ import { Field, Input, Textarea } from "@/components/ui/field";
 import type { Option } from "@/lib/data/catalogues";
 import type { Interests } from "@/lib/data/student";
 import type { InterestsInput } from "@/lib/validation/profile";
+import { T, useT } from "@/i18n/client";
 
 const ARRANGEMENTS = [
   { value: "on_site", label: "On site" },
@@ -68,6 +69,7 @@ export function InterestsStep({
   provinces: Option[];
 }) {
   const [v, setV] = useState<InterestsInput>(() => toInput(initial));
+  const t = useT();
   const [roleDraft, setRoleDraft] = useState("");
   const autosave = useAutosave(saveInterests, 700);
   const fieldErrors = autosave.result?.ok === false ? autosave.result.fields ?? {} : {};
@@ -124,7 +126,7 @@ export function InterestsStep({
               }}
               aria-describedby="role-hint"
             />
-            <Button variant="secondary" onClick={addRole} disabled={v.preferredRoles.length >= 5}>Add</Button>
+            <Button variant="secondary" onClick={addRole} disabled={v.preferredRoles.length >= 5}><T>{"Add"}</T></Button>
           </div>
         </Field>
         {v.preferredRoles.length > 0 && (
@@ -134,7 +136,7 @@ export function InterestsStep({
                 {r}
                 <button
                   type="button"
-                  aria-label={`Remove ${r}`}
+                  aria-label={t("Remove {name}", { name: r })}
                   className="flex size-6 items-center justify-center rounded-full hover:bg-white"
                   onClick={() => update({ preferredRoles: v.preferredRoles.filter((x) => x !== r) })}
                 >

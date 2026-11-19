@@ -4,8 +4,12 @@ import { notFound } from "next/navigation";
 import { LegalDocumentView } from "@/components/legal/document-view";
 import { getPublishedLegalDocument } from "@/lib/data/legal";
 import { LEGAL_LABELS, isLegalKind } from "@/lib/legal";
+import { getT } from "@/i18n/server";
 
-export const metadata: Metadata = { title: "Legal document" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t("Legal document") };
+}
 
 /** A specific published version (current or earlier). Drafts are never shown here. */
 export default async function LegalVersionPage({ params }: PageProps<"/legal/[kind]/[version]">) {

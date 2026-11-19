@@ -13,8 +13,14 @@ import {
   getProfile,
   getSkills,
 } from "@/lib/data/student";
+import { T } from "@/i18n/client";
+import { getLocale } from "@/i18n/server";
+import { getT } from "@/i18n/server";
 
-export const metadata: Metadata = { title: "Dashboard" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t("Dashboard") };
+}
 
 export default async function DashboardOverview({ searchParams }: PageProps<"/dashboard">) {
   const user = await requireStudent("/dashboard");
@@ -29,7 +35,8 @@ export default async function DashboardOverview({ searchParams }: PageProps<"/da
     getCatalogues(),
     searchParams,
   ]);
-  if (!profile) return <Alert tone="danger">Your profile could not be loaded. Please refresh the page.</Alert>;
+  const locale = await getLocale();
+  if (!profile) return <Alert tone="danger"><T>{"Your profile could not be loaded. Please refresh the page."}</T></Alert>;
   const photoUrl = await getPhotoUrl(profile.photo_path);
 
   return (
@@ -44,6 +51,7 @@ export default async function DashboardOverview({ searchParams }: PageProps<"/da
       notifications={notifications}
       catalogues={catalogues}
       notice={typeof sp.notice === "string" ? sp.notice : undefined}
+      locale={locale}
     />
   );
 }
