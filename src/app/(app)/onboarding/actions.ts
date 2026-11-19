@@ -11,6 +11,7 @@ import {
   educationSchema,
   experienceSchema,
   interestsSchema,
+  languageSchema,
   linksSchema,
   personalDraftSchema,
   personalRequiredSchema,
@@ -73,7 +74,11 @@ export async function continueFrom(step: number): Promise<SaveResult> {
 
 export async function savePersonal(values: Record<string, string>, mode: "draft" | "continue"): Promise<SaveResult> {
   const { user, supabase } = await context();
-  const parsed = (mode === "continue" ? personalRequiredSchema : personalDraftSchema).safeParse(values);
+  // "other" means the district is not listed: the student types a city instead.
+  const notListed = values.districtId === "other";
+  const input: Record<string, string> = { ...values, districtId: notListed ? "" : (values.districtId ?? "") };
+  if (!notListed && input.districtId) input.city = "";
+  const parsed = (mode === "continue" ? personalRequiredSchema : personalDraftSchema).safeParse(input);
   if (!parsed.success) return { ok: false, fields: zodFieldErrors(parsed.error) };
 
   const v = parsed.data;
@@ -89,7 +94,10 @@ export async function savePersonal(values: Record<string, string>, mode: "draft"
       nationality_code: v.nationality ?? null,
       country_code: country,
       province_id: country === "MZ" ? (v.provinceId ?? null) : null,
+      district_id: country === "MZ" ? (v.districtId ?? null) : null,
       city: v.city ?? null,
+      headline: v.headline ?? null,
+      summary: v.summary ?? null,
       phone: v.phone ?? null,
       linkedin_url: v.linkedinUrl ?? null,
     })
@@ -184,6 +192,38 @@ export async function updateSkillLevel(id: string, proficiency: string): Promise
 export async function removeSkill(id: string): Promise<SaveResult> {
   const { user, supabase } = await context();
   const { error } = await supabase.from("student_skills").delete().eq("id", id).eq("profile_id", user.id);
+  if (error) return dbError(error);
+  refresh();
+  return { ok: true };
+}
+
+export async function addLanguage(input: { languageId: number | string; level: string }): Promise<SaveResult> {
+  const { user, supabase } = await context();
+  const parsed = languageSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, fields: zodFieldErrors(parsed.error) };
+  const { data, error } = await supabase
+    .from("student_languages")
+    .insert({ profile_id: user.id, language_id: parsed.data.languageId, level: parsed.data.level })
+    .select("id")
+    .single();
+  if (error) return dbError(error);
+  refresh();
+  return { ok: true, id: data.id };
+}
+
+export async function updateLanguageLevel(id: string, level: string): Promise<SaveResult> {
+  const { user, supabase } = await context();
+  const parsed = languageSchema.shape.level.safeParse(level);
+  if (!parsed.success) return { ok: false, error: GENERIC };
+  const { error } = await supabase.from("student_languages").update({ level: parsed.data }).eq("id", id).eq("profile_id", user.id);
+  if (error) return dbError(error);
+  refresh();
+  return { ok: true };
+}
+
+export async function removeLanguage(id: string): Promise<SaveResult> {
+  const { user, supabase } = await context();
+  const { error } = await supabase.from("student_languages").delete().eq("id", id).eq("profile_id", user.id);
   if (error) return dbError(error);
   refresh();
   return { ok: true };

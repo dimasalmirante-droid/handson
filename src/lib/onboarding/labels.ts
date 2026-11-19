@@ -33,6 +33,14 @@ export const PROFICIENCY_LABELS: Record<string, string> = {
   expert: "Expert",
 };
 
+export const LANGUAGE_LEVEL_LABELS: Record<string, string> = {
+  basic: "Basic",
+  intermediate: "Intermediate",
+  advanced: "Advanced",
+  fluent: "Fluent",
+  native: "Native or first language",
+};
+
 export const ARRANGEMENT_LABELS: Record<string, string> = { on_site: "On site", hybrid: "Hybrid", remote: "Remote" };
 
 export const AVAILABILITY_LABELS: Record<string, string> = {

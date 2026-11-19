@@ -89,6 +89,7 @@ export default async function StudentReviewPage({ params }: PageProps<"/admin/st
   const countries = countryOptions("en");
   const country = (c: string | null) => [...countries.priority, ...countries.rest].find((x) => x.code === c)?.name ?? c;
   const province = catalogues.provinces.find((p) => p.id === profile.province_id)?.name;
+  const district = catalogues.districts.find((x) => x.id === profile.district_id)?.name;
   const names = (ids: number[], list: { id: number; name: string }[]) => ids.map((x) => list.find((l) => l.id === x)?.name).filter(Boolean).join(", ");
   const fullName = [profile.first_name, profile.middle_name, profile.surname].filter(Boolean).join(" ") || "Name not added";
   const accountStatus = (statusRow.data?.account_status as string) ?? "active";
@@ -151,7 +152,9 @@ export default async function StudentReviewPage({ params }: PageProps<"/admin/st
           <Row label="Date of birth">{profile.date_of_birth ? d(profile.date_of_birth) : null}</Row>
           <Row label="Gender">{profile.gender?.replaceAll("_", " ")}</Row>
           <Row label="Nationality">{country(profile.nationality_code)}</Row>
-          <Row label="Location">{[profile.city, province, country(profile.country_code)].filter(Boolean).join(", ")}</Row>
+          <Row label="Headline">{profile.headline}</Row>
+          <Row label="Summary">{profile.summary}</Row>
+          <Row label="Location">{[district ?? profile.city, province, country(profile.country_code)].filter(Boolean).join(", ")}</Row>
           <Row label="Phone">{profile.phone}</Row>
           <Row label="LinkedIn">{profile.linkedin_url && <a className="text-indigo hover:underline" href={profile.linkedin_url} target="_blank" rel="noopener noreferrer">{profile.linkedin_url}</a>}</Row>
           <Row label="GitHub">{profile.github_url && <a className="text-indigo hover:underline" href={profile.github_url} target="_blank" rel="noopener noreferrer">{profile.github_url}</a>}</Row>

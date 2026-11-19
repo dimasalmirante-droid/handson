@@ -20,6 +20,9 @@ export type StudentProfile = {
   country_code: string;
   province_id: number | null;
   city: string | null;
+  district_id: number | null;
+  headline: string | null;
+  summary: string | null;
   phone: string | null;
   photo_path: string | null;
   linkedin_url: string | null;
@@ -95,7 +98,7 @@ export type DocumentRecord = {
 };
 
 const PROFILE_COLUMNS =
-  "id, email, first_name, middle_name, surname, date_of_birth, gender, nationality_code, country_code, province_id, city, phone, photo_path, linkedin_url, github_url, portfolio_url, employer_visibility, verification_status, onboarding_step, onboarding_completed_at";
+  "id, email, first_name, middle_name, surname, date_of_birth, gender, nationality_code, country_code, province_id, city, district_id, headline, summary, phone, photo_path, linkedin_url, github_url, portfolio_url, employer_visibility, verification_status, onboarding_step, onboarding_completed_at";
 
 /* All loaders below run as the signed-in user: Row Level Security limits them to their own rows. */
 
@@ -123,6 +126,18 @@ export const getSkills = cache(async (userId: string): Promise<StudentSkill[]> =
     .eq("profile_id", userId)
     .order("created_at");
   return (data ?? []) as StudentSkill[];
+});
+
+export type StudentLanguage = { id: string; language_id: number; level: string };
+
+export const getLanguages = cache(async (userId: string): Promise<StudentLanguage[]> => {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("student_languages")
+    .select("id, language_id, level")
+    .eq("profile_id", userId)
+    .order("created_at");
+  return (data ?? []) as StudentLanguage[];
 });
 
 export const getInterests = cache(async (userId: string): Promise<Interests | null> => {
@@ -233,8 +248,9 @@ export const MISSING_LABELS: Record<string, string> = {
   date_of_birth: "Date of birth",
   nationality: "Nationality",
   province: "Province",
-  city: "City or district",
+  city: "District or city",
   phone: "Phone number",
+  headline: "Professional headline",
   education_record: "Add at least one qualification",
   skills_min_3: "Add at least three skills",
   industries: "Industries you are interested in",

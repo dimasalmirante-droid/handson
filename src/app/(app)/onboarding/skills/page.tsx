@@ -3,13 +3,13 @@ import { SkillsStep } from "@/components/onboarding/skills-step";
 import { StepHeader } from "@/components/onboarding/wizard";
 import { requireStudent } from "@/lib/auth/session";
 import { getCatalogues } from "@/lib/data/catalogues";
-import { getSkills } from "@/lib/data/student";
+import { getLanguages, getSkills } from "@/lib/data/student";
 
 export const metadata: Metadata = { title: "Skills" };
 
 export default async function SkillsPage() {
   const user = await requireStudent("/onboarding/skills");
-  const [mine, catalogues] = await Promise.all([getSkills(user.id), getCatalogues()]);
+  const [mine, myLanguages, catalogues] = await Promise.all([getSkills(user.id), getLanguages(user.id), getCatalogues()]);
 
   return (
     <>
@@ -18,7 +18,7 @@ export default async function SkillsPage() {
         title="Skills"
         lead="Add the skills you can offer an employer: software, languages, technical and professional skills. Each skill saves as you add it."
       />
-      <SkillsStep mine={mine} skills={catalogues.skills} categories={catalogues.skillCategories} />
+      <SkillsStep mine={mine} skills={catalogues.skills} categories={catalogues.skillCategories} myLanguages={myLanguages} languages={catalogues.languages} />
     </>
   );
 }

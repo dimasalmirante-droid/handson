@@ -4,6 +4,7 @@ import {
   educationSchema,
   experienceSchema,
   interestsSchema,
+  languageSchema,
   linksSchema,
   personalDraftSchema,
   personalRequiredSchema,
@@ -33,7 +34,7 @@ describe("personal information", () => {
   const complete = {
     firstName: "Amina", middleName: "", surname: "Macuácua", dateOfBirth: "2003-05-14", gender: "",
     nationality: "MZ", country: "MZ", provinceId: "1", city: "Maputo", phoneDial: "+258", phoneNumber: "84 123 4567",
-    linkedinUrl: "linkedin.com/in/amina",
+    linkedinUrl: "linkedin.com/in/amina", headline: "Finalista de Contabilidade à procura de estágio",
   };
 
   it("autosave accepts partial forms", () => {
@@ -50,7 +51,7 @@ describe("personal information", () => {
     expect(r.success).toBe(false);
     if (!r.success) {
       const paths = r.error.issues.map((i) => i.path[0]);
-      expect(paths).toEqual(expect.arrayContaining(["surname", "dateOfBirth", "nationality", "provinceId", "city", "phoneNumber"]));
+      expect(paths).toEqual(expect.arrayContaining(["surname", "dateOfBirth", "nationality", "provinceId", "districtId", "phoneNumber", "headline"]));
     }
   });
 
@@ -68,8 +69,36 @@ describe("personal information", () => {
     expect(r.success).toBe(true);
   });
 
+  it("in Mozambique, a district or a typed city satisfies the location", () => {
+    expect(personalRequiredSchema.safeParse({ ...complete, city: "", districtId: "12" }).success).toBe(true);
+    expect(personalRequiredSchema.safeParse({ ...complete, city: "Maputo", districtId: "" }).success).toBe(true);
+    const r = personalRequiredSchema.safeParse({ ...complete, city: "", districtId: "" });
+    expect(r.success).toBe(false);
+    if (!r.success) expect(r.error.issues.map((i) => i.path[0])).toContain("districtId");
+  });
+
+  it("outside Mozambique, the city is required", () => {
+    const r = personalRequiredSchema.safeParse({ ...complete, country: "ZA", provinceId: "", city: "", phoneDial: "+27", phoneNumber: "825551234" });
+    expect(r.success).toBe(false);
+    if (!r.success) expect(r.error.issues.map((i) => i.path[0])).toContain("city");
+  });
+
+  it("limits headline and summary length", () => {
+    expect(personalDraftSchema.safeParse({ headline: "x".repeat(121) }).success).toBe(false);
+    expect(personalDraftSchema.safeParse({ summary: "x".repeat(601) }).success).toBe(false);
+    expect(personalDraftSchema.safeParse({ headline: "x".repeat(120), summary: "x".repeat(600) }).success).toBe(true);
+  });
+
   it("rejects unrealistic dates of birth", () => {
     expect(personalDraftSchema.safeParse({ dateOfBirth: "2020-01-01" }).success).toBe(false);
+  });
+});
+
+describe("languages", () => {
+  it("accepts a language with a known level only", () => {
+    expect(languageSchema.safeParse({ languageId: "1", level: "native" }).success).toBe(true);
+    expect(languageSchema.safeParse({ languageId: "1", level: "expert" }).success).toBe(false);
+    expect(languageSchema.safeParse({ languageId: "", level: "basic" }).success).toBe(false);
   });
 });
 

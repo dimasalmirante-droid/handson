@@ -26,7 +26,10 @@ export default async function PersonalStep({ searchParams }: PageProps<"/onboard
     nationality: profile?.nationality_code ?? "",
     country: profile?.country_code ?? "MZ",
     provinceId: profile?.province_id ? String(profile.province_id) : "",
+    districtId: profile?.district_id ? String(profile.district_id) : profile?.city && (profile?.country_code ?? "MZ") === "MZ" ? "other" : "",
     city: profile?.city ?? "",
+    headline: profile?.headline ?? "",
+    summary: profile?.summary ?? "",
     phoneDial: phone.dial,
     phoneNumber: phone.national,
     linkedinUrl: profile?.linkedin_url ?? "",
@@ -40,7 +43,7 @@ export default async function PersonalStep({ searchParams }: PageProps<"/onboard
         title="Personal information"
         lead="The basics employers need to know who you are and how to reach you. Fields marked * are required."
       />
-      <PersonalForm photo={<PhotoUploader photoUrl={photoUrl} initials={initials} />} initial={initial} countries={countryOptions("en")} provinces={catalogues.provinces} />
+      <PersonalForm photo={<PhotoUploader photoUrl={photoUrl} initials={initials} />} initial={initial} countries={countryOptions("en")} provinces={catalogues.provinces} districts={catalogues.districts} />
     </>
   );
 }

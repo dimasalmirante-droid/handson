@@ -9,6 +9,8 @@ export type QualificationType = Option & { code: string; institutionTypes: strin
 export type FieldOfStudy = Option & { code: string; area: string };
 export type SkillCategory = Option & { code: string };
 export type Skill = Option & { categoryId: number; aliases: string[] };
+export type District = Option & { provinceId: number };
+export type Language = Option & { code: string };
 
 export type Catalogues = {
   provinces: Province[];
@@ -19,6 +21,8 @@ export type Catalogues = {
   skills: Skill[];
   industries: Option[];
   jobFunctions: Option[];
+  districts: District[];
+  languages: Language[];
 };
 
 /**
@@ -29,7 +33,7 @@ export const getCatalogues = cache(async (locale: "en" | "pt" = "en"): Promise<C
   const supabase = await createClient();
   const name = locale === "pt" ? "name_pt" : "name_en";
 
-  const [provinces, institutions, qualifications, fields, categories, skills, industries, functions] = await Promise.all([
+  const [provinces, institutions, qualifications, fields, categories, skills, industries, functions, districts, languages] = await Promise.all([
     supabase.from("provinces").select("id, code, name_en, name_pt").eq("country_code", "MZ").order("sort_order"),
     supabase.from("institutions").select("id, name, short_name, type, provinces(name_en, name_pt)").eq("is_active", true).order("name"),
     supabase.from("qualification_types").select("id, code, name_en, name_pt, institution_types").order("sort_order"),
@@ -38,9 +42,11 @@ export const getCatalogues = cache(async (locale: "en" | "pt" = "en"): Promise<C
     supabase.from("skill_catalogue").select("id, category_id, name_en, name_pt, aliases").eq("is_active", true).order(name),
     supabase.from("industries").select("id, name_en, name_pt").order("sort_order"),
     supabase.from("job_functions").select("id, name_en, name_pt").order("sort_order"),
+    supabase.from("districts").select("id, province_id, name").eq("is_active", true).order("name"),
+    supabase.from("languages").select("id, code, name_en, name_pt").eq("is_active", true).order("sort_order"),
   ]);
 
-  const firstError = [provinces, institutions, qualifications, fields, categories, skills, industries, functions].find((r) => r.error);
+  const firstError = [provinces, institutions, qualifications, fields, categories, skills, industries, functions, districts, languages].find((r) => r.error);
   if (firstError?.error) throw new Error(`Could not load reference data: ${firstError.error.message}`);
 
   type Named = { name_en: string; name_pt: string };
@@ -60,5 +66,7 @@ export const getCatalogues = cache(async (locale: "en" | "pt" = "en"): Promise<C
     skills: (skills.data ?? []).map((r) => ({ id: r.id, categoryId: r.category_id, name: n(r), aliases: r.aliases ?? [] })),
     industries: (industries.data ?? []).map((r) => ({ id: r.id, name: n(r) })),
     jobFunctions: (functions.data ?? []).map((r) => ({ id: r.id, name: n(r) })),
+    districts: (districts.data ?? []).map((r) => ({ id: r.id, provinceId: r.province_id, name: r.name })),
+    languages: (languages.data ?? []).map((r) => ({ id: r.id, code: r.code, name: n(r) })),
   };
 });
