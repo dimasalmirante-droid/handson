@@ -11,6 +11,7 @@ export const DASHBOARD_NAV = [
   { href: "/dashboard/skills", label: "Skills" },
   { href: "/dashboard/experience", label: "Experience" },
   { href: "/dashboard/documents", label: "Documents" },
+  { href: "/dashboard/cv", label: "My CV" },
   { href: "/dashboard/settings", label: "Settings" },
 ] as const;
 
