@@ -7,15 +7,12 @@ import {
   getCompletion,
   getDocuments,
   getEducation,
-  getExperiences,
   getNotifications,
   getPhotoUrl,
   getProfile,
-  getSkills,
 } from "@/lib/data/student";
 import { T } from "@/i18n/client";
-import { getLocale } from "@/i18n/server";
-import { getT } from "@/i18n/server";
+import { getLocale, getT } from "@/i18n/server";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getT();
@@ -24,12 +21,10 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function DashboardOverview({ searchParams }: PageProps<"/dashboard">) {
   const user = await requireStudent("/dashboard");
-  const [profile, completion, education, experiences, skills, documents, notifications, catalogues, sp] = await Promise.all([
+  const [profile, completion, education, documents, notifications, catalogues, sp] = await Promise.all([
     getProfile(user.id),
     getCompletion(user.id),
     getEducation(user.id),
-    getExperiences(user.id),
-    getSkills(user.id),
     getDocuments(user.id),
     getNotifications(user.id),
     getCatalogues(),
@@ -45,8 +40,6 @@ export default async function DashboardOverview({ searchParams }: PageProps<"/da
       photoUrl={photoUrl}
       completion={completion}
       education={education}
-      experiences={experiences}
-      skills={skills}
       documents={documents}
       notifications={notifications}
       catalogues={catalogues}
