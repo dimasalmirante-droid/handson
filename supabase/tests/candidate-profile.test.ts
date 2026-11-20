@@ -258,3 +258,12 @@ describe("public profile photo", () => {
     expect(await visible()).toEqual([]);
   });
 });
+
+describe("Portuguese catalogue names", () => {
+  it("job functions and skills have a Portuguese name for Procurement", async () => {
+    const jf = await db.query<{ name_pt: string }>("select name_pt from public.job_functions where code = 'procurement'");
+    expect(jf.rows[0].name_pt).toBe("Compras e Aprovisionamento");
+    const sk = await db.query<{ name_pt: string }>("select name_pt from public.skill_catalogue where name_en = 'Procurement'");
+    expect(sk.rows.map((r) => r.name_pt)).toEqual(["Compras e aprovisionamento"]);
+  });
+});
