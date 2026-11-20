@@ -21,7 +21,7 @@ export function WizardStepper({ completeSteps }: { completeSteps: number[] }) {
 
   return (
     <nav aria-label={t("Profile steps")} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-      <ol className="flex min-w-max gap-2 sm:min-w-0 sm:flex-wrap">
+      <ol className="flex min-w-max items-center gap-1.5">
         {items.map((s) => {
           const current = pathname === s.href;
           const complete = completeSteps.includes(s.number);
@@ -30,9 +30,10 @@ export function WizardStepper({ completeSteps }: { completeSteps: number[] }) {
               <Link
                 href={s.href}
                 aria-current={current ? "step" : undefined}
+                title={current ? undefined : t(s.label)}
                 className={cn(
-                  "flex items-center gap-2 rounded-[var(--radius-pill)] py-1.5 pl-1.5 pr-3.5 text-sm font-medium transition-colors",
-                  current ? "bg-ink text-white" : "bg-surface-raised text-ink ring-1 ring-inset ring-line hover:ring-line-strong",
+                  "flex items-center gap-2 rounded-[var(--radius-pill)] p-1.5 text-sm font-medium transition-colors",
+                  current ? "bg-ink pr-3.5 text-white" : "bg-surface-raised text-ink ring-1 ring-inset ring-line hover:ring-line-strong",
                 )}
               >
                 <span
@@ -43,7 +44,8 @@ export function WizardStepper({ completeSteps }: { completeSteps: number[] }) {
                 >
                   {complete && !current ? "✓" : s.number}
                 </span>
-                {t(s.label)}
+                {/* Only the current step shows its name, so the bar stays on one line; the others keep it for screen readers. */}
+                <span className={current ? undefined : "sr-only"}>{t(s.label)}</span>
                 <span className="sr-only">{complete ? ` (${t("complete")})` : ""}</span>
               </Link>
             </li>
@@ -145,7 +147,7 @@ export function StepHeader({ step, title, lead }: { step: number; title: string;
   const t = useT();
   return (
     <header className="mb-8">
-      <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-indigo">{t("Step {step} of 6", { step })}</p>
+      <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-indigo">{t("Step {step} of 7", { step })}</p>
       <h1 className="mt-2 text-[clamp(28px,4vw,38px)] tracking-[-0.03em]">{t(title)}</h1>
       <p className="mt-2 max-w-2xl text-ink-muted"><T>{lead}</T></p>
     </header>
