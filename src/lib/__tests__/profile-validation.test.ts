@@ -6,6 +6,8 @@ import {
   interestsSchema,
   languageSchema,
   linksSchema,
+  publicProfileSchema,
+  suggestSlug,
   personalDraftSchema,
   personalRequiredSchema,
 } from "../validation/profile";
@@ -175,5 +177,24 @@ describe("interests and links", () => {
     expect(linksSchema.safeParse({ githubUrl: "github.com/amina" }).success).toBe(true);
     expect(linksSchema.safeParse({ githubUrl: "gitlab.com/amina" }).success).toBe(false);
     expect(linksSchema.safeParse({ linkedinUrl: "javascript:alert(1)" }).success).toBe(false);
+  });
+});
+
+describe("public profile", () => {
+  it("suggests an address from the name", () => {
+    expect(suggestSlug("Amina", "Macuácua")).toBe("amina-macuacua");
+    expect(suggestSlug("João  Paulo", null, "N'Dlovu")).toBe("joao-paulo-n-dlovu");
+    expect(suggestSlug(null, undefined)).toBe("");
+    expect(suggestSlug("a".repeat(30), "b".repeat(30))).toHaveLength(40);
+  });
+
+  it("validates the address and sections", () => {
+    const ok = publicProfileSchema.safeParse({ enabled: true, slug: " Amina-Macuacua ", sections: ["headline", "skills"] });
+    expect(ok.success && ok.data.slug).toBe("amina-macuacua");
+    expect(publicProfileSchema.safeParse({ enabled: true, slug: "", sections: [] }).success).toBe(false);
+    expect(publicProfileSchema.safeParse({ enabled: false, slug: "", sections: [] }).success).toBe(true);
+    expect(publicProfileSchema.safeParse({ enabled: true, slug: "admin", sections: [] }).success).toBe(false);
+    expect(publicProfileSchema.safeParse({ enabled: true, slug: "a--b", sections: [] }).success).toBe(false);
+    expect(publicProfileSchema.safeParse({ enabled: true, slug: "amina", sections: ["phone"] }).success).toBe(false);
   });
 });
