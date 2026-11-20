@@ -3,8 +3,12 @@ import { DocumentsStep } from "@/components/onboarding/documents-step";
 import { StepHeader } from "@/components/onboarding/wizard";
 import { requireStudent } from "@/lib/auth/session";
 import { getDocuments, getProfile } from "@/lib/data/student";
+import { getT } from "@/i18n/server";
 
-export const metadata: Metadata = { title: "Documents and portfolio" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t("Documents and portfolio") };
+}
 
 export default async function DocumentsPage() {
   const user = await requireStudent("/onboarding/documents");

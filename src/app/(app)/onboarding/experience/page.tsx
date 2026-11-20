@@ -3,8 +3,12 @@ import { ExperienceStep } from "@/components/onboarding/experience-step";
 import { StepHeader } from "@/components/onboarding/wizard";
 import { requireStudent } from "@/lib/auth/session";
 import { getExperiences } from "@/lib/data/student";
+import { getT } from "@/i18n/server";
 
-export const metadata: Metadata = { title: "Experience" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t("Experience") };
+}
 
 export default async function ExperiencePage() {
   const user = await requireStudent("/onboarding/experience");

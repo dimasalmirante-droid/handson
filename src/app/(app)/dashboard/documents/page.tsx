@@ -3,8 +3,12 @@ import { PageHeader, Panel } from "@/components/dashboard/page-header";
 import { DocumentsStep } from "@/components/onboarding/documents-step";
 import { requireStudent } from "@/lib/auth/session";
 import { getDocuments, getProfile } from "@/lib/data/student";
+import { getT } from "@/i18n/server";
 
-export const metadata: Metadata = { title: "Documents" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t("Documents") };
+}
 
 export default async function DashboardDocumentsPage() {
   const user = await requireStudent("/dashboard/documents");

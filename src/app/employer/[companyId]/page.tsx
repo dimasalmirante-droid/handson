@@ -6,6 +6,7 @@ import { Alert, Badge } from "@/components/ui/feedback";
 import { requireCompanyRole, companyRoleAtLeast } from "@/lib/auth/company";
 import { getContexts } from "@/lib/auth/contexts";
 import { COMPANY_ROLE_LABELS, listWorkspaces } from "@/lib/auth/destination";
+import { I18nProvider } from "@/i18n/client";
 
 export const metadata: Metadata = { title: "Employer workspace" };
 
@@ -16,6 +17,7 @@ export default async function EmployerWorkspacePage({ params }: PageProps<"/empl
   const workspaces = contexts ? listWorkspaces(contexts) : [];
 
   return (
+    <I18nProvider locale="en">
     <AppShell email={user.email} home={`/employer/${company.id}`} workspaces={workspaces} current={`company:${company.id}`}>
       <div className="mx-auto max-w-4xl">
         <PageHeader title={company.name} lead={<Badge tone="indigo">{COMPANY_ROLE_LABELS[company.role]}</Badge>} />
@@ -50,5 +52,6 @@ export default async function EmployerWorkspacePage({ params }: PageProps<"/empl
         )}
       </div>
     </AppShell>
+    </I18nProvider>
   );
 }

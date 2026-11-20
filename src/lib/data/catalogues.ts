@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import { getLocale } from "@/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 
 export type Option = { id: number; name: string };
@@ -26,10 +27,11 @@ export type Catalogues = {
 };
 
 /**
- * All reference catalogues in the requested language. Loaded once per
+ * All reference catalogues in the requested language (default: the visitor's). Loaded once per
  * request; the lists are small (a few hundred rows in total).
  */
-export const getCatalogues = cache(async (locale: "en" | "pt" = "en"): Promise<Catalogues> => {
+export const getCatalogues = cache(async (requested?: "en" | "pt"): Promise<Catalogues> => {
+  const locale = requested ?? (await getLocale());
   const supabase = await createClient();
   const name = locale === "pt" ? "name_pt" : "name_en";
 

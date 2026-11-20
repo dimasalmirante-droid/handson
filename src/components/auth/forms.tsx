@@ -15,6 +15,7 @@ import { GoogleButton } from "@/components/auth/google-button";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/feedback";
 import { Checkbox, Field, Input, describedBy } from "@/components/ui/field";
+import { useT } from "@/i18n/client";
 import { PASSWORD_MIN } from "@/lib/validation/auth";
 
 const initial: FormState = {};
@@ -30,9 +31,10 @@ function Submit({ children }: { children: React.ReactNode }) {
 
 function GoogleSubmit({ label }: { label: string }) {
   const { pending } = useFormStatus();
+  const t = useT();
   return (
     <GoogleButton type="submit" disabled={pending} aria-busy={pending || undefined}>
-      {pending ? "Redirecting to Google…" : label}
+      {pending ? t("Redirecting to Google…") : t(label)}
     </GoogleButton>
   );
 }
@@ -49,9 +51,10 @@ export function GoogleForm({ label, next, intent }: { label: string; next?: stri
 }
 
 export function Divider({ label }: { label: string }) {
+  const t = useT();
   return (
     <div className="flex items-center gap-3 text-sm text-ink-muted before:h-px before:flex-1 before:bg-line after:h-px after:flex-1 after:bg-line">
-      {label}
+      {t(label)}
     </div>
   );
 }
@@ -86,6 +89,7 @@ function TextField(props: {
 
 export function LoginForm({ next }: { next?: string }) {
   const [state, action] = useActionState(loginAction, initial);
+  const t = useT();
   return (
     <form action={action} noValidate className="flex flex-col gap-5">
       {state.error && <Alert tone="danger">{state.error}</Alert>}
@@ -96,10 +100,10 @@ export function LoginForm({ next }: { next?: string }) {
         error={state.fields?.password} />
       <div className="-mt-2 text-right">
         <Link href="/forgot-password" className="text-sm font-semibold text-indigo hover:underline">
-          Forgot your password?
+          {t("Forgot your password?")}
         </Link>
       </div>
-      <Submit>Log in</Submit>
+      <Submit>{t("Log in")}</Submit>
     </form>
   );
 }
@@ -110,10 +114,11 @@ export type RegisterLegal = {
 } | null;
 
 function FieldError({ id, message }: { id: string; message?: string }) {
+  const t = useT();
   if (!message) return null;
   return (
     <p id={`${id}-error`} role="alert" className="mt-1.5 text-sm font-medium text-danger">
-      {message}
+      {t(message)}
     </p>
   );
 }
@@ -131,6 +136,7 @@ export function RegisterForm({ termsUrl, privacyUrl, legal, next }: { termsUrl: 
   const [state, action] = useActionState(registerAction, initial);
   const termsError = state.fields?.acceptTerms;
   const privacyError = state.fields?.acknowledgePrivacy;
+  const t = useT();
   return (
     <form action={action} noValidate className="flex flex-col gap-5">
       {state.error && <Alert tone="danger">{state.error}</Alert>}
@@ -144,7 +150,7 @@ export function RegisterForm({ termsUrl, privacyUrl, legal, next }: { termsUrl: 
       <TextField id="email" label="Email address" type="email" autoComplete="email" required
         defaultValue={state.values?.email} error={state.fields?.email} />
       <TextField id="password" label="Password" type="password" autoComplete="new-password" required
-        minLength={PASSWORD_MIN} hint={`At least ${PASSWORD_MIN} characters, including a letter and a number.`}
+        minLength={PASSWORD_MIN} hint={t("At least {n} characters, including a letter and a number.", { n: PASSWORD_MIN })}
         error={state.fields?.password} />
       {legal ? (
         <div className="flex flex-col gap-3">
@@ -159,11 +165,11 @@ export function RegisterForm({ termsUrl, privacyUrl, legal, next }: { termsUrl: 
               aria-describedby={termsError ? "acceptTerms-error" : undefined}
               label={
                 <>
-                  I accept the{" "}
+                  {t("I accept the")}{" "}
                   <a href={legal.terms.href} target="_blank" rel="noopener" className={linkClass}>
-                    Terms and Conditions
+                    {t("Terms and Conditions")}
                   </a>{" "}
-                  (version {legal.terms.version}).
+                  ({t("version")} {legal.terms.version}).
                 </>
               }
             />
@@ -178,11 +184,11 @@ export function RegisterForm({ termsUrl, privacyUrl, legal, next }: { termsUrl: 
               aria-describedby={privacyError ? "acknowledgePrivacy-error" : undefined}
               label={
                 <>
-                  I have read and acknowledge the{" "}
+                  {t("I have read and acknowledge the")}{" "}
                   <a href={legal.privacy.href} target="_blank" rel="noopener" className={linkClass}>
-                    Privacy Notice
+                    {t("Privacy Notice")}
                   </a>{" "}
-                  (version {legal.privacy.version}).
+                  ({t("version")} {legal.privacy.version}).
                 </>
               }
             />
@@ -199,13 +205,13 @@ export function RegisterForm({ termsUrl, privacyUrl, legal, next }: { termsUrl: 
             aria-describedby={termsError ? "acceptTerms-error" : undefined}
             label={
               <>
-                I agree to the{" "}
+                {t("I agree to the")}{" "}
                 <a href={termsUrl} target="_blank" rel="noopener" className={linkClass}>
-                  Terms and Conditions
+                  {t("Terms and Conditions")}
                 </a>{" "}
-                and have read the{" "}
+                {t("and have read the")}{" "}
                 <a href={privacyUrl} target="_blank" rel="noopener" className={linkClass}>
-                  Privacy Policy
+                  {t("Privacy Policy")}
                 </a>
                 .
               </>
@@ -214,13 +220,14 @@ export function RegisterForm({ termsUrl, privacyUrl, legal, next }: { termsUrl: 
           <FieldError id="acceptTerms" message={termsError} />
         </div>
       )}
-      <Submit>Create account</Submit>
+      <Submit>{t("Create account")}</Submit>
     </form>
   );
 }
 
 export function ForgotPasswordForm() {
   const [state, action] = useActionState(forgotPasswordAction, initial);
+  const t = useT();
   if (state.success) {
     return (
       <Alert tone="success" title="Check your email">
@@ -233,22 +240,23 @@ export function ForgotPasswordForm() {
       {state.error && <Alert tone="danger">{state.error}</Alert>}
       <TextField id="email" label="Email address" type="email" autoComplete="email" required
         defaultValue={state.values?.email} error={state.fields?.email} />
-      <Submit>Send reset link</Submit>
+      <Submit>{t("Send reset link")}</Submit>
     </form>
   );
 }
 
 export function ResetPasswordForm() {
   const [state, action] = useActionState(resetPasswordAction, initial);
+  const t = useT();
   return (
     <form action={action} noValidate className="flex flex-col gap-5">
       {state.error && <Alert tone="danger">{state.error}</Alert>}
       <TextField id="password" label="New password" type="password" autoComplete="new-password" required
-        minLength={PASSWORD_MIN} hint={`At least ${PASSWORD_MIN} characters, including a letter and a number.`}
+        minLength={PASSWORD_MIN} hint={t("At least {n} characters, including a letter and a number.", { n: PASSWORD_MIN })}
         error={state.fields?.password} />
       <TextField id="confirmPassword" label="Confirm new password" type="password" autoComplete="new-password" required
         error={state.fields?.confirmPassword} />
-      <Submit>Save new password</Submit>
+      <Submit>{t("Save new password")}</Submit>
     </form>
   );
 }

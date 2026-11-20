@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/feedback";
 import { Field, Input, describedBy } from "@/components/ui/field";
 import { cn } from "@/lib/cn";
+import { PASSWORD_MIN } from "@/lib/validation/auth";
+import { T } from "@/i18n/client";
 
 /* ------------------------------------------------------------------ */
 /* Employer visibility                                                 */
@@ -30,11 +32,11 @@ export function VisibilityToggle({ initial }: { initial: boolean }) {
     <div>
       <div className="flex items-start justify-between gap-6">
         <div>
-          <p id="visibility-label" className="font-semibold">Allow verified employers to view my profile</p>
+          <p id="visibility-label" className="font-semibold"><T>{"Allow verified employers to view my profile"}</T></p>
           <p id="visibility-desc" className="mt-1 text-[15px] text-ink-muted">
-            {on
+            <T>{on
               ? "Your profile can be shown to verified employers looking for interns and graduates. Your documents are shared only when you apply or accept a request."
-              : "Your profile is private. Only you and authorised Handson staff can see it."}
+              : "Your profile is private. Only you and authorised Handson staff can see it."}</T>
           </p>
         </div>
         <button
@@ -56,18 +58,18 @@ export function VisibilityToggle({ initial }: { initial: boolean }) {
 
       {confirming && (
         <div className="mt-5 rounded-[14px] border-[1.5px] border-indigo/30 bg-indigo-soft/40 p-4 sm:p-5">
-          <p className="font-semibold">Before you turn this on</p>
+          <p className="font-semibold"><T>{"Before you turn this on"}</T></p>
           <ul className="mt-2 list-disc pl-5 text-[15px] text-ink-muted">
-            <li>Verified employers will be able to see your name, education, skills, interests, experience and province.</li>
-            <li>Your phone number, email, date of birth and documents are not shown until you choose to share them.</li>
-            <li>You can turn this off at any time. We keep a record of each change.</li>
+            <li><T>{"Verified employers will be able to see your name, education, skills, interests, experience and province."}</T></li>
+            <li><T>{"Your phone number, email, date of birth and documents are not shown until you choose to share them."}</T></li>
+            <li><T>{"You can turn this off at any time. We keep a record of each change."}</T></li>
           </ul>
           <p className="mt-3 text-sm text-ink-muted">
-            Employer access is not available yet. Turning this on now means your profile is ready when it opens.
+            <T>{"Employer access is not available yet. Turning this on now means your profile is ready when it opens."}</T>
           </p>
           <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <Button variant="ghost" onClick={() => setConfirming(false)}>Cancel</Button>
-            <Button loading={pending} onClick={() => apply(true)}>I agree, make my profile visible</Button>
+            <Button variant="ghost" onClick={() => setConfirming(false)}><T>{"Cancel"}</T></Button>
+            <Button loading={pending} onClick={() => apply(true)}><T>{"I agree, make my profile visible"}</T></Button>
           </div>
         </div>
       )}
@@ -94,13 +96,13 @@ export function EmailForm({ current }: { current: string }) {
   return (
     <form action={action} noValidate className="flex flex-col gap-4">
       <p className="text-[15px]">
-        Current email: <strong>{current}</strong>
+        <T>{"Current email:"}</T>{" "}<strong>{current}</strong>
       </p>
       {state.message && <Alert tone={state.ok ? "success" : "danger"}>{state.message}</Alert>}
       <Field id="email" label="New email address" error={err}>
         <Input id="email" name="email" type="email" autoComplete="email" aria-invalid={err ? true : undefined} aria-describedby={describedBy("email", { error: err })} />
       </Field>
-      <div><Submit>Change email</Submit></div>
+      <div><Submit><T>{"Change email"}</T></Submit></div>
     </form>
   );
 }
@@ -118,10 +120,10 @@ export function PasswordForm() {
       {state.message && <Alert tone={state.ok ? "success" : "danger"}>{state.message}</Alert>}
       {field("currentPassword", "Current password", "current-password")}
       <div className="grid gap-4 sm:grid-cols-2">
-        {field("newPassword", "New password", "new-password", "At least 8 characters, including a letter and a number.")}
+        {field("newPassword", "New password", "new-password", `At least ${PASSWORD_MIN} characters, including a letter and a number.`)}
         {field("confirmPassword", "Confirm new password", "new-password")}
       </div>
-      <div><Submit>Change password</Submit></div>
+      <div><Submit><T>{"Change password"}</T></Submit></div>
     </form>
   );
 }

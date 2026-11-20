@@ -1,4 +1,5 @@
 import type { ComponentProps, ReactNode } from "react";
+import { T } from "@/i18n/client";
 import { cn } from "@/lib/cn";
 
 const control =
@@ -38,7 +39,7 @@ export function Checkbox({ label, className, id, ...props }: CheckboxProps) {
         className="mt-0.5 size-5 shrink-0 cursor-pointer rounded-[5px] border-[1.5px] border-line-strong accent-indigo"
         {...props}
       />
-      <span>{label}</span>
+      <span><T>{label}</T></span>
     </label>
   );
 }
@@ -62,23 +63,23 @@ export function Field({ id, label, required, hint, error, className, children }:
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
       <label htmlFor={id} className="text-sm font-semibold text-ink">
-        {label}
+        <T>{label}</T>
         {required && (
           <span className="ml-0.5 text-danger" aria-hidden>
             *
           </span>
         )}
-        {required && <span className="sr-only"> (required)</span>}
+        {required && <span className="sr-only"> (<T>required</T>)</span>}
       </label>
       {children}
       {hint && !error && (
         <p id={`${id}-hint`} className="text-sm text-ink-muted">
-          {hint}
+          <T>{hint}</T>
         </p>
       )}
       {error && (
         <p id={`${id}-error`} role="alert" className="text-sm font-medium text-danger">
-          {error}
+          <T>{error}</T>
         </p>
       )}
     </div>
