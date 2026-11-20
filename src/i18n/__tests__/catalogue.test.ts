@@ -115,7 +115,7 @@ describe("translate", () => {
   it("returns Portuguese, fills placeholders and falls back to English", () => {
     expect(translate("pt", "Save changes")).toBe("Guardar alterações");
     expect(translate("en", "Save changes")).toBe("Save changes");
-    expect(translate("pt", "Step {step} of 6", { step: 2 })).toBe("Passo 2 de 6");
+    expect(translate("pt", "Step {step} of 7", { step: 2 })).toBe("Passo 2 de 7");
     expect(translate("pt", "A text nobody translated")).toBe("A text nobody translated");
   });
 

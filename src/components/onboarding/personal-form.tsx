@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { savePersonal } from "@/app/(app)/onboarding/actions";
+import { DateOfBirthField } from "@/components/onboarding/date-of-birth";
 import { EmbeddedSave, StepFooter, useAutosave } from "@/components/onboarding/wizard";
 import { Field, Input, Select, Textarea, describedBy } from "@/components/ui/field";
 import { DIAL_CODES } from "@/lib/countries";
@@ -99,7 +100,7 @@ export function PersonalForm({
         {text("middleName", "Middle name", { autoComplete: "additional-name" })}
         {text("surname", "Surname", { required: true, autoComplete: "family-name" })}
 
-        {text("dateOfBirth", "Date of birth", { required: true, type: "date", autoComplete: "bday" })}
+        <DateOfBirthField value={values.dateOfBirth} error={errors.dateOfBirth} onChange={(iso) => set("dateOfBirth", iso)} />
         <Field id="gender" label="Gender" hint="Optional" error={errors.gender}>
           <Select id="gender" value={values.gender ?? ""} onChange={(e) => set("gender", e.target.value)} aria-describedby="gender-hint">
             <option value="">{t("Select")}</option>

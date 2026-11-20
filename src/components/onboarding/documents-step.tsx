@@ -7,11 +7,12 @@ import { DocumentManager } from "@/components/files/document-manager";
 import { Field, Input, describedBy } from "@/components/ui/field";
 import type { DocumentRecord } from "@/lib/data/student";
 import type { FieldErrors } from "@/lib/validation/profile";
-import { T } from "@/i18n/client";
+import { T, useT } from "@/i18n/client";
 
 type Values = Record<string, string>;
 
 export function DocumentsStep({ initial, documents, embedded = false }: { initial: Values; documents: DocumentRecord[]; embedded?: boolean }) {
+  const t = useT();
   const [values, setValues] = useState<Values>(initial);
   const [fields, setFields] = useState<FieldErrors>({});
   const autosave = useAutosave((v: Values) => saveLinks(v, "draft"));
@@ -30,7 +31,7 @@ export function DocumentsStep({ initial, documents, embedded = false }: { initia
         id={id}
         type="url"
         inputMode="url"
-        placeholder={placeholder}
+        placeholder={t(placeholder)}
         value={values[id] ?? ""}
         onChange={(e) => set(id, e.target.value)}
         onBlur={() => autosave.flush()}
