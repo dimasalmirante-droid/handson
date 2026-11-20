@@ -133,3 +133,16 @@ test.describe("security headers", () => {
     expect(violations).toEqual([]);
   });
 });
+
+test.describe("language", () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
+
+  test("pages are in Portuguese by default and can switch to English", async ({ page }) => {
+    await page.goto("/login");
+    await expect(page.locator("html")).toHaveAttribute("lang", "pt");
+    await expect(page.getByRole("heading", { name: "Bem-vindo de volta" })).toBeVisible();
+    await page.getByRole("link", { name: "en", exact: true }).first().click();
+    await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
+    await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  });
+});

@@ -7,6 +7,7 @@ import { Alert } from "@/components/ui/feedback";
 import { Checkbox, Field, Input, describedBy } from "@/components/ui/field";
 import { cn } from "@/lib/cn";
 import { PUBLIC_SECTIONS, type PublicSection } from "@/lib/validation/profile";
+import { T, useT } from "@/i18n/client";
 
 const SECTION_LABELS: Record<PublicSection, string> = {
   photo: "Profile photo",
@@ -43,6 +44,7 @@ export function PublicProfileForm({
   const [result, setResult] = useState<SettingsResult | null>(null);
   const [copied, setCopied] = useState(false);
   const [pending, start] = useTransition();
+  const t = useT();
 
   const url = `${baseUrl}/p/${saved.slug ?? slug}`;
   const dirty = enabled !== saved.enabled || slug !== (saved.slug ?? suggestedSlug) || sections.join() !== saved.sections.join();
@@ -74,11 +76,11 @@ export function PublicProfileForm({
     <div>
       <div className="flex items-start justify-between gap-6">
         <div>
-          <p id="public-label" className="font-semibold">Share a public profile link</p>
+          <p id="public-label" className="font-semibold"><T>{"Share a public profile link"}</T></p>
           <p id="public-desc" className="mt-1 text-[15px] text-ink-muted">
-            {saved.enabled
+            {t(saved.enabled
               ? "Anyone with the link can see the sections you choose below. Your email address and phone number are never shown."
-              : "Off. Turn it on to get a link you can send to employers on WhatsApp, email or LinkedIn."}
+              : "Off. Turn it on to get a link you can send to employers on WhatsApp, email or LinkedIn.")}
           </p>
         </div>
         <button
@@ -103,14 +105,14 @@ export function PublicProfileForm({
         <div className="mt-5 flex flex-col gap-3 rounded-[14px] bg-surface px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <a href={url} target="_blank" rel="noopener" className="break-all font-semibold text-indigo hover:underline">{url}</a>
           <div className="flex gap-2">
-            <Button size="sm" variant="secondary" type="button" onClick={copy}>{copied ? "Copied" : "Copy link"}</Button>
+            <Button size="sm" variant="secondary" type="button" onClick={copy}>{t(copied ? "Copied" : "Copy link")}</Button>
             <a
               className="inline-flex items-center rounded-[var(--radius-pill)] px-3 py-1.5 text-sm font-semibold text-ink hover:bg-indigo-soft hover:text-indigo"
               href={`https://wa.me/?text=${encodeURIComponent(url)}`}
               target="_blank"
               rel="noopener noreferrer"
             >
-              Share on WhatsApp
+              <T>{"Share on WhatsApp"}</T>
             </a>
           </div>
         </div>
@@ -140,8 +142,8 @@ export function PublicProfileForm({
           </Field>
 
           <fieldset>
-            <legend className="text-[15px] font-semibold">What to show</legend>
-            <p className="mt-1 text-sm text-ink-muted">Your name is always shown. Email and phone are never shown.</p>
+            <legend className="text-[15px] font-semibold"><T>{"What to show"}</T></legend>
+            <p className="mt-1 text-sm text-ink-muted"><T>{"Your name is always shown. Email and phone are never shown."}</T></p>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               {PUBLIC_SECTIONS.map((key) => (
                 <Checkbox
@@ -157,7 +159,7 @@ export function PublicProfileForm({
 
           <div>
             <Button type="button" disabled={pending || (!dirty && saved.enabled)} onClick={() => save(true)}>
-              {saved.enabled ? "Save changes" : "Turn on public profile"}
+              {t(saved.enabled ? "Save changes" : "Turn on public profile")}
             </Button>
           </div>
         </div>

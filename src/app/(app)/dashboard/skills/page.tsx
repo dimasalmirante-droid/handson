@@ -4,8 +4,12 @@ import { SkillsStep } from "@/components/onboarding/skills-step";
 import { requireStudent } from "@/lib/auth/session";
 import { getCatalogues } from "@/lib/data/catalogues";
 import { getLanguages, getSkills } from "@/lib/data/student";
+import { getT } from "@/i18n/server";
 
-export const metadata: Metadata = { title: "Skills" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t("Skills") };
+}
 
 export default async function DashboardSkillsPage() {
   const user = await requireStudent("/dashboard/skills");

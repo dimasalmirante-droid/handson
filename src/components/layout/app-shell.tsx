@@ -1,9 +1,11 @@
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { signOutAction } from "@/app/(auth)/actions";
 import { Wordmark } from "@/components/brand/wordmark";
 import { WorkspaceSwitcher } from "@/components/layout/workspace-switcher";
 import { Button } from "@/components/ui/button";
 import type { Workspace } from "@/lib/auth/destination";
+import { T } from "@/i18n/client";
+import { LanguageSwitcher } from "@/components/layout/language-switcher";
 
 /** Header for signed-in pages: wordmark, workspace switcher (when there is more than one), account email and sign-out. */
 export function AppShell({
@@ -25,13 +27,16 @@ export function AppShell({
         <div className="mx-auto flex h-[72px] max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
           <Wordmark href={home} />
           <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+            <Suspense>
+              <LanguageSwitcher className="hidden sm:flex" />
+            </Suspense>
             <WorkspaceSwitcher workspaces={workspaces} current={current} />
             <span className="hidden max-w-[240px] truncate text-sm text-ink-muted sm:inline" title={email}>
               {email}
             </span>
             <form action={signOutAction}>
               <Button type="submit" variant="secondary" size="sm">
-                Sign out
+                <T>Sign out</T>
               </Button>
             </form>
           </div>

@@ -6,6 +6,7 @@ import { EmbeddedSave, StepFooter, useAutosave } from "@/components/onboarding/w
 import { Field, Input, Select, Textarea, describedBy } from "@/components/ui/field";
 import { DIAL_CODES } from "@/lib/countries";
 import { HEADLINE_MAX, SUMMARY_MAX, type FieldErrors } from "@/lib/validation/profile";
+import { T, useT } from "@/i18n/client";
 
 type Values = Record<string, string>;
 type CountryOption = { code: string; name: string };
@@ -32,6 +33,7 @@ export function PersonalForm({
   provinces: { id: number; name: string }[];
   districts: { id: number; provinceId: number; name: string }[];
 }) {
+  const t = useT();
   const [values, setValues] = useState<Values>(initial);
   const [fields, setFields] = useState<FieldErrors>({});
   const autosave = useAutosave((v: Values) => savePersonal(v, "draft"));
@@ -55,7 +57,7 @@ export function PersonalForm({
         name={id}
         type={opts.type ?? "text"}
         autoComplete={opts.autoComplete}
-        placeholder={opts.placeholder}
+        placeholder={opts.placeholder && t(opts.placeholder)}
         value={values[id] ?? ""}
         onChange={(e) => set(id, e.target.value)}
         onBlur={() => autosave.flush()}
@@ -74,7 +76,7 @@ export function PersonalForm({
         aria-invalid={errors[id] ? true : undefined}
         aria-describedby={describedBy(id, { error: errors[id] })}
       >
-        <option value="">Select a country</option>
+        <option value="">{t("Select a country")}</option>
         {countries.priority.map((c) => (
           <option key={c.code} value={c.code}>{c.name}</option>
         ))}
@@ -100,16 +102,16 @@ export function PersonalForm({
         {text("dateOfBirth", "Date of birth", { required: true, type: "date", autoComplete: "bday" })}
         <Field id="gender" label="Gender" hint="Optional" error={errors.gender}>
           <Select id="gender" value={values.gender ?? ""} onChange={(e) => set("gender", e.target.value)} aria-describedby="gender-hint">
-            <option value="">Select</option>
+            <option value="">{t("Select")}</option>
             {GENDER_OPTIONS.map((g) => (
-              <option key={g.value} value={g.value}>{g.label}</option>
+              <option key={g.value} value={g.value}>{t(g.label)}</option>
             ))}
           </Select>
         </Field>
         {countrySelect("nationality", "Nationality")}
       </div>
 
-      <h2 className="mb-5 mt-10 text-xl">Where you live</h2>
+      <h2 className="mb-5 mt-10 text-xl"><T>{"Where you live"}</T></h2>
       <div className="grid gap-x-5 gap-y-6 sm:grid-cols-3">
         {countrySelect("country", "Country")}
         {inMozambique && (
@@ -121,7 +123,7 @@ export function PersonalForm({
               aria-invalid={errors.provinceId ? true : undefined}
               aria-describedby={describedBy("provinceId", { error: errors.provinceId })}
             >
-              <option value="">Select a province</option>
+              <option value="">{t("Select a province")}</option>
               {provinces.map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
@@ -138,11 +140,11 @@ export function PersonalForm({
               aria-invalid={errors.districtId ? true : undefined}
               aria-describedby={describedBy("districtId", { error: errors.districtId })}
             >
-              <option value="">{values.provinceId ? "Select a district" : "Select a province first"}</option>
+              <option value="">{values.provinceId ? t("Select a district") : t("Select a province first")}</option>
               {provinceDistricts.map((d) => (
                 <option key={d.id} value={d.id}>{d.name}</option>
               ))}
-              <option value="other">Not listed — type your city</option>
+              <option value="other">{t("Not listed — type your city")}</option>
             </Select>
           </Field>
         )}
@@ -150,17 +152,16 @@ export function PersonalForm({
           text("city", "City or town", { required: true, autoComplete: "address-level2" })}
       </div>
 
-      <h2 className="mb-2 mt-10 text-xl">How you introduce yourself</h2>
+      <h2 className="mb-2 mt-10 text-xl"><T>{"How you introduce yourself"}</T></h2>
       <p className="mb-5 max-w-2xl text-[15px] text-ink-muted">
-        Employers read this first. Keep it factual: what you study or do, and what you are looking for. Do not paste a cover letter or
-        your contact details here.
+        <T>{"Employers read this first. Keep it factual: what you study or do, and what you are looking for. Do not paste a cover letter or your contact details here."}</T>
       </p>
       <div className="grid gap-y-6">
         <Field
           id="headline"
           label="Professional headline"
           required
-          hint={`For example: “Finalista de Contabilidade e Auditoria à procura de estágio” · ${(values.headline ?? "").length}/${HEADLINE_MAX}`}
+          hint={`${t("For example: “Finalista de Contabilidade e Auditoria à procura de estágio”")} · ${(values.headline ?? "").length}/${HEADLINE_MAX}`}
           error={errors.headline}
         >
           <Input
@@ -176,7 +177,7 @@ export function PersonalForm({
         <Field
           id="summary"
           label="Short summary"
-          hint={`Optional. Two or three sentences on your strengths and the kind of role you want · ${(values.summary ?? "").length}/${SUMMARY_MAX}`}
+          hint={`${t("Optional. Two or three sentences on your strengths and the kind of role you want")} · ${(values.summary ?? "").length}/${SUMMARY_MAX}`}
           error={errors.summary}
         >
           <Textarea
@@ -192,7 +193,7 @@ export function PersonalForm({
         </Field>
       </div>
 
-      <h2 className="mb-5 mt-10 text-xl">Contact and online profile</h2>
+      <h2 className="mb-5 mt-10 text-xl"><T>{"Contact and online profile"}</T></h2>
       <div className="grid gap-x-5 gap-y-6 sm:grid-cols-2">
         <Field
           id="phoneNumber"
@@ -203,7 +204,7 @@ export function PersonalForm({
         >
           <div className="flex gap-2">
             <Select
-              aria-label="Country dialling code"
+              aria-label={t("Country dialling code")}
               className="w-[104px] shrink-0"
               value={values.phoneDial || "+258"}
               onChange={(e) => set("phoneDial", e.target.value)}

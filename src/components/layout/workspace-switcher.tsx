@@ -1,6 +1,7 @@
 import { switchWorkspace } from "@/app/workspaces/actions";
 import type { Workspace } from "@/lib/auth/destination";
 import { cn } from "@/lib/cn";
+import { T } from "@/i18n/client";
 
 /**
  * Lets people with more than one workspace (student profile, Handson admin,
@@ -18,12 +19,12 @@ export function WorkspaceSwitcher({ workspaces, current, inverse }: { workspaces
           inverse ? "border-white/30 text-white hover:bg-white/10" : "border-line text-ink hover:bg-indigo-soft",
         )}
       >
-        <span className="max-w-[160px] truncate">{active?.label ?? "Workspaces"}</span>
+        <span className="max-w-[160px] truncate"><T>{active?.label ?? "Workspaces"}</T></span>
         <span aria-hidden className="text-xs">▾</span>
-        <span className="sr-only">Switch workspace</span>
+        <span className="sr-only"><T>Switch workspace</T></span>
       </summary>
       <div className="absolute right-0 z-20 mt-2 w-72 rounded-[14px] border border-line bg-surface-raised p-2 text-ink shadow-lg">
-        <p className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-ink-muted">Switch workspace</p>
+        <p className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-ink-muted"><T>Switch workspace</T></p>
         <ul>
           {workspaces.map((w) => (
             <li key={w.key}>
@@ -37,15 +38,15 @@ export function WorkspaceSwitcher({ workspaces, current, inverse }: { workspaces
                     w.key === current && "bg-surface",
                   )}
                 >
-                  <span className="text-[15px] font-semibold">{w.label}</span>
-                  <span className="text-sm text-ink-muted">{w.detail}</span>
+                  <span className="text-[15px] font-semibold"><T>{w.label}</T></span>
+                  <span className="text-sm text-ink-muted"><T>{w.detail}</T></span>
                 </button>
               </form>
             </li>
           ))}
         </ul>
         <a href="/workspaces" className="mt-1 block rounded-[10px] px-3 py-2 text-sm font-semibold text-indigo hover:bg-indigo-soft">
-          All workspaces
+          <T>All workspaces</T>
         </a>
       </div>
     </details>

@@ -8,6 +8,7 @@ import { Button, buttonClasses } from "@/components/ui/button";
 import { Alert } from "@/components/ui/feedback";
 import { cn } from "@/lib/cn";
 import { STEPS } from "@/lib/onboarding/steps";
+import { T, useT } from "@/i18n/client";
 
 /* ------------------------------------------------------------------ */
 /* Stepper                                                             */
@@ -15,10 +16,11 @@ import { STEPS } from "@/lib/onboarding/steps";
 
 export function WizardStepper({ completeSteps }: { completeSteps: number[] }) {
   const pathname = usePathname();
+  const t = useT();
   const items = [...STEPS.map((s) => ({ ...s, href: `/onboarding/${s.slug}` })), { slug: "review", number: 7, label: "Review", href: "/onboarding/review" }];
 
   return (
-    <nav aria-label="Profile steps" className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+    <nav aria-label={t("Profile steps")} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
       <ol className="flex min-w-max gap-2 sm:min-w-0 sm:flex-wrap">
         {items.map((s) => {
           const current = pathname === s.href;
@@ -41,8 +43,8 @@ export function WizardStepper({ completeSteps }: { completeSteps: number[] }) {
                 >
                   {complete && !current ? "✓" : s.number}
                 </span>
-                {s.label}
-                <span className="sr-only">{complete ? " (complete)" : ""}</span>
+                {t(s.label)}
+                <span className="sr-only">{complete ? ` (${t("complete")})` : ""}</span>
               </Link>
             </li>
           );
@@ -120,6 +122,7 @@ export function useAutosave<T>(save: (values: T) => Promise<SaveResult>, delay =
 }
 
 export function SaveIndicator({ status }: { status: SaveStatus }) {
+  const t = useT();
   const text = {
     idle: "Changes save automatically",
     saving: "Saving…",
@@ -129,7 +132,7 @@ export function SaveIndicator({ status }: { status: SaveStatus }) {
   return (
     <p role="status" aria-live="polite" className={cn("text-sm", status === "error" ? "font-medium text-danger" : "text-ink-muted")}>
       {status === "saved" && <span aria-hidden className="mr-1 text-success">✓</span>}
-      {text}
+      {t(text)}
     </p>
   );
 }
@@ -139,11 +142,12 @@ export function SaveIndicator({ status }: { status: SaveStatus }) {
 /* ------------------------------------------------------------------ */
 
 export function StepHeader({ step, title, lead }: { step: number; title: string; lead: ReactNode }) {
+  const t = useT();
   return (
     <header className="mb-8">
-      <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-indigo">Step {step} of 6</p>
-      <h1 className="mt-2 text-[clamp(28px,4vw,38px)] tracking-[-0.03em]">{title}</h1>
-      <p className="mt-2 max-w-2xl text-ink-muted">{lead}</p>
+      <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-indigo">{t("Step {step} of 6", { step })}</p>
+      <h1 className="mt-2 text-[clamp(28px,4vw,38px)] tracking-[-0.03em]">{t(title)}</h1>
+      <p className="mt-2 max-w-2xl text-ink-muted"><T>{lead}</T></p>
     </header>
   );
 }
@@ -168,6 +172,7 @@ export function StepFooter({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const t = useT();
 
   return (
     <div className="mt-10 border-t border-line pt-6">
@@ -177,7 +182,7 @@ export function StepFooter({
         <div className="flex items-center gap-4">
           {back ? (
             <Link href={back} className={buttonClasses({ variant: "ghost" })}>
-              ← Back
+              <T>{"← Back"}</T>
             </Link>
           ) : (
             <span />
@@ -195,7 +200,7 @@ export function StepFooter({
             })
           }
         >
-          {continueLabel}
+          {t(continueLabel)}
         </Button>
       </div>
     </div>
@@ -210,9 +215,9 @@ export function EmbeddedSave({ status, onSave }: { status: SaveStatus; onSave: (
     <div className="mt-10 flex flex-col-reverse gap-3 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between">
       <div aria-live="polite">
         {checked === "error" ? (
-          <p className="text-sm font-medium text-danger">Some required fields need attention.</p>
+          <p className="text-sm font-medium text-danger"><T>{"Some required fields need attention."}</T></p>
         ) : checked === "ok" ? (
-          <p className="text-sm text-ink-muted"><span aria-hidden className="mr-1 text-success">✓</span>Saved. All required fields are complete.</p>
+          <p className="text-sm text-ink-muted"><span aria-hidden className="mr-1 text-success">✓</span><T>{"Saved. All required fields are complete."}</T></p>
         ) : (
           <SaveIndicator status={status} />
         )}
@@ -221,7 +226,7 @@ export function EmbeddedSave({ status, onSave }: { status: SaveStatus; onSave: (
         loading={pending}
         onClick={() => start(async () => setChecked((await onSave()) ? "ok" : "error"))}
       >
-        Save changes
+        <T>{"Save changes"}</T>
       </Button>
     </div>
   );
@@ -252,14 +257,15 @@ export function ChipGroup<V extends string | number>({
   hint?: string;
 }) {
   const atMax = max !== undefined && selected.length >= max;
+  const t = useT();
   return (
     <fieldset>
       <legend className="text-sm font-semibold">
-        {legend}
+        {t(legend)}
         {required && <span className="ml-0.5 text-danger" aria-hidden>*</span>}
-        {required && <span className="sr-only"> (required)</span>}
+        {required && <span className="sr-only">{" "}<T>{"(required)"}</T></span>}
       </legend>
-      {hint && <p className="mt-1 text-sm text-ink-muted">{hint}</p>}
+      {hint && <p className="mt-1 text-sm text-ink-muted">{t(hint)}</p>}
       <div className="mt-3 flex flex-wrap gap-2">
         {options.map((o) => {
           const on = selected.includes(o.value);
@@ -280,7 +286,7 @@ export function ChipGroup<V extends string | number>({
                 onChange={() => onChange(on ? selected.filter((s) => s !== o.value) : [...selected, o.value])}
               />
               {on && <span aria-hidden className="mr-1">✓</span>}
-              {o.label}
+              {t(o.label)}
             </label>
           );
         })}
@@ -305,12 +311,13 @@ export function RadioCards<V extends string>({
   onChange: (v: V) => void;
   required?: boolean;
 }) {
+  const t = useT();
   return (
     <fieldset>
       <legend className="text-sm font-semibold">
-        {legend}
+        {t(legend)}
         {required && <span className="ml-0.5 text-danger" aria-hidden>*</span>}
-        {required && <span className="sr-only"> (required)</span>}
+        {required && <span className="sr-only">{" "}<T>{"(required)"}</T></span>}
       </legend>
       <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {options.map((o) => (
@@ -322,7 +329,7 @@ export function RadioCards<V extends string>({
             )}
           >
             <input type="radio" name={name} className="size-4 accent-indigo" checked={value === o.value} onChange={() => onChange(o.value)} />
-            {o.label}
+            {t(o.label)}
           </label>
         ))}
       </div>
@@ -361,6 +368,7 @@ export function SearchPicker({
   describedBy?: string;
   initialQuery?: string;
 }) {
+  const t = useT();
   const [query, setQuery] = useState(initialQuery);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
@@ -397,7 +405,7 @@ export function SearchPicker({
         aria-describedby={describedBy}
         autoComplete="off"
         value={query}
-        placeholder={placeholder}
+        placeholder={t(placeholder)}
         onChange={(e) => {
           setQuery(e.target.value);
           setOpen(true);
@@ -457,7 +465,7 @@ export function SearchPicker({
               onMouseEnter={() => setActive(matches.length)}
               className={cn("cursor-pointer rounded-[8px] px-3 py-2 text-[15px]", active === matches.length && "bg-indigo-soft")}
             >
-              {createLabel} “<strong>{query.trim()}</strong>”
+              {t(createLabel)} “<strong>{query.trim()}</strong>”
             </li>
           )}
         </ul>

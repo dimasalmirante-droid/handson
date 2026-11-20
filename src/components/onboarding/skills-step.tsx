@@ -11,6 +11,7 @@ import { LanguagesSection } from "@/components/onboarding/languages-section";
 import { cn } from "@/lib/cn";
 import type { Language, Skill, SkillCategory } from "@/lib/data/catalogues";
 import type { StudentLanguage, StudentSkill } from "@/lib/data/student";
+import { T, useT } from "@/i18n/client";
 
 const LEVELS = [
   { value: "beginner", label: "Beginner", hint: "Learning the basics" },
@@ -39,6 +40,7 @@ export function SkillsStep({
   const [category, setCategory] = useState<number>(categories[0]?.id ?? 0);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const t = useT();
 
   const owned = new Set(mine.map((s) => s.skill_id).filter((id): id is number => id !== null));
   const nameOf = (s: StudentSkill) => s.custom_skill_name ?? skills.find((k) => k.id === s.skill_id)?.name ?? "Skill";
@@ -77,14 +79,14 @@ export function SkillsStep({
         </Field>
         <Field id="level" label="Level for new skills" hint={LEVELS.find((l) => l.value === level)?.hint}>
           <Select id="level" value={level} onChange={(e) => setLevel(e.target.value)} aria-describedby="level-hint">
-            {LEVELS.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
+            {LEVELS.map((l) => <option key={l.value} value={l.value}>{t(l.label)}</option>)}
           </Select>
         </Field>
       </div>
 
       <div className="mt-8">
-        <p className="text-sm font-semibold">Or browse by category</p>
-        <div role="tablist" aria-label="Skill categories" className="mt-3 flex flex-wrap gap-2">
+        <p className="text-sm font-semibold"><T>{"Or browse by category"}</T></p>
+        <div role="tablist" aria-label={t("Skill categories")} className="mt-3 flex flex-wrap gap-2">
           {categories.map((c) => (
             <button
               key={c.id}
@@ -116,7 +118,7 @@ export function SkillsStep({
                     "rounded-[var(--radius-pill)] px-4 py-2 text-[15px] font-medium transition-colors",
                     has ? "bg-indigo-soft text-indigo" : "bg-surface-raised ring-1 ring-inset ring-line-strong hover:bg-indigo-soft",
                   )}
-                  aria-label={has ? `${s.name} (added)` : `Add ${s.name}`}
+                  aria-label={has ? t("{name} (added)", { name: s.name }) : t("Add {name}", { name: s.name })}
                 >
                   {has ? "✓ " : "+ "}
                   {s.name}
@@ -128,11 +130,11 @@ export function SkillsStep({
 
       <section className="mt-10" aria-labelledby="my-skills">
         <div className="flex items-baseline justify-between">
-          <h2 id="my-skills" className="text-xl">Your skills</h2>
-          <p className="text-sm text-ink-muted">{mine.length} added{mine.length < 3 ? ` · add at least ${3 - mine.length} more` : ""}</p>
+          <h2 id="my-skills" className="text-xl"><T>{"Your skills"}</T></h2>
+          <p className="text-sm text-ink-muted">{t("{n} added", { n: mine.length })}{mine.length < 3 ? ` · ${t("add at least {n} more", { n: 3 - mine.length })}` : ""}</p>
         </div>
         {mine.length === 0 ? (
-          <p className="mt-3 text-ink-muted">No skills yet. Add at least three, including languages and software you use.</p>
+          <p className="mt-3 text-ink-muted"><T>{"No skills yet. Add at least three, including languages and software you use."}</T></p>
         ) : (
           <ul className="mt-4 divide-y divide-line rounded-[16px] border border-line">
             {mine.map((s) => (
@@ -140,15 +142,15 @@ export function SkillsStep({
                 <span className="font-medium">{nameOf(s)}</span>
                 <div className="flex items-center gap-2">
                   <Select
-                    aria-label={`Level for ${nameOf(s)}`}
+                    aria-label={t("Level for {name}", { name: nameOf(s) })}
                     className="h-10 w-[170px]"
                     value={s.proficiency}
                     onChange={(e) => run(() => updateSkillLevel(s.id, e.target.value))}
                   >
-                    {LEVELS.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
+                    {LEVELS.map((l) => <option key={l.value} value={l.value}>{t(l.label)}</option>)}
                   </Select>
-                  <Button size="sm" variant="ghost" aria-label={`Remove ${nameOf(s)}`} onClick={() => run(() => removeSkill(s.id))}>
-                    Remove
+                  <Button size="sm" variant="ghost" aria-label={t("Remove {name}", { name: nameOf(s) })} onClick={() => run(() => removeSkill(s.id))}>
+                    <T>{"Remove"}</T>
                   </Button>
                 </div>
               </li>

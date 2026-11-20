@@ -7,8 +7,13 @@ import { countryOptions, splitPhone } from "@/lib/countries";
 import { getCatalogues } from "@/lib/data/catalogues";
 import { getPhotoUrl, getProfile } from "@/lib/data/student";
 import { PhotoUploader } from "@/components/files/photo-uploader";
+import { getT } from "@/i18n/server";
+import { getLocale } from "@/i18n/server";
 
-export const metadata: Metadata = { title: "Personal information" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t("Personal information") };
+}
 
 export default async function PersonalStep({ searchParams }: PageProps<"/onboarding/personal">) {
   const user = await requireStudent("/onboarding/personal");
@@ -43,7 +48,7 @@ export default async function PersonalStep({ searchParams }: PageProps<"/onboard
         title="Personal information"
         lead="The basics employers need to know who you are and how to reach you. Fields marked * are required."
       />
-      <PersonalForm photo={<PhotoUploader photoUrl={photoUrl} initials={initials} />} initial={initial} countries={countryOptions("en")} provinces={catalogues.provinces} districts={catalogues.districts} />
+      <PersonalForm photo={<PhotoUploader photoUrl={photoUrl} initials={initials} />} initial={initial} countries={countryOptions(await getLocale())} provinces={catalogues.provinces} districts={catalogues.districts} />
     </>
   );
 }

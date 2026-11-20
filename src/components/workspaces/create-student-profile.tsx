@@ -6,12 +6,13 @@ import { createStudentProfileAction, type CreateProfileState } from "@/app/works
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/feedback";
 import { Checkbox } from "@/components/ui/field";
+import { T } from "@/i18n/client";
 
 function Submit() {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" loading={pending}>
-      Create my student profile
+      <T>{"Create my student profile"}</T>
     </Button>
   );
 }

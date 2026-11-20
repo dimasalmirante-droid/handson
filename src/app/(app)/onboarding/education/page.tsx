@@ -4,8 +4,12 @@ import { StepHeader } from "@/components/onboarding/wizard";
 import { requireStudent } from "@/lib/auth/session";
 import { getCatalogues } from "@/lib/data/catalogues";
 import { getEducation } from "@/lib/data/student";
+import { getT } from "@/i18n/server";
 
-export const metadata: Metadata = { title: "Education" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t("Education") };
+}
 
 export default async function EducationPage() {
   const user = await requireStudent("/onboarding/education");
