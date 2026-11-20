@@ -3,6 +3,8 @@ import { getContexts, getLegalStatus, getRememberedWorkspace } from "@/lib/auth/
 import { decideDestination } from "@/lib/auth/destination";
 import { safeNextPath } from "@/lib/auth/redirects";
 import { getCurrentUser } from "@/lib/auth/session";
+import { LOCALE_COOKIE, isLocale } from "@/i18n/config";
+import { createClient } from "@/lib/supabase/server";
 
 const NOTICES = ["verified", "password-updated"];
 
@@ -36,5 +38,15 @@ export async function GET(request: NextRequest) {
     return go(safe ? `/legal/accept?next=${encodeURIComponent(safe)}` : "/legal/accept");
   }
 
-  return go(withNotice(decideDestination(contexts, { next, remembered: await getRememberedWorkspace() })));
+  const res = go(withNotice(decideDestination(contexts, { next, remembered: await getRememberedWorkspace() })));
+
+  // On a new device, use the student's saved language until they choose another.
+  if (contexts.student && !request.cookies.get(LOCALE_COOKIE)) {
+    const supabase = await createClient();
+    const { data } = await supabase.from("profiles").select("preferred_locale").eq("id", user.id).maybeSingle();
+    if (isLocale(data?.preferred_locale)) {
+      res.cookies.set(LOCALE_COOKIE, data.preferred_locale, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
+    }
+  }
+  return res;
 }

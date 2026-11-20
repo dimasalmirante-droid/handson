@@ -11,8 +11,16 @@ import { requireStudent } from "@/lib/auth/session";
 import { getConsentHistory, getProfile } from "@/lib/data/student";
 import { site } from "@/lib/site";
 import { suggestSlug } from "@/lib/validation/profile";
+import { T } from "@/i18n/client";
+import { getT } from "@/i18n/server";
+import { getLocale } from "@/i18n/server";
+import { LOCALE_TAGS, type Locale } from "@/i18n/config";
+import { LanguagePreference } from "@/components/dashboard/language-preference";
 
-export const metadata: Metadata = { title: "Settings" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t("Settings") };
+}
 
 const CONSENT_LABELS: Record<string, string> = {
   terms: "Terms and Conditions",
@@ -22,19 +30,20 @@ const CONSENT_LABELS: Record<string, string> = {
   marketing: "Marketing messages",
 };
 
-const dateTime = (iso: string) =>
-  new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Africa/Maputo" });
+const dateTime = (iso: string, locale: Locale) =>
+  new Date(iso).toLocaleString(LOCALE_TAGS[locale], { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Africa/Maputo" });
 
 export default async function SettingsPage({ searchParams }: PageProps<"/dashboard/settings">) {
   const user = await requireStudent("/dashboard/settings");
   const [profile, history, sp, origin] = await Promise.all([getProfile(user.id), getConsentHistory(user.id), searchParams, requestOrigin()]);
   const usesPassword = user.provider === "email";
+  const locale = await getLocale();
 
   return (
     <>
       <PageHeader title="Settings" lead="Privacy, account and security." />
       {sp.notice === "verified" && (
-        <div className="mb-6 rounded-[14px] bg-success-soft px-4 py-3 text-[15px]">Your new email address is confirmed.</div>
+        <div className="mb-6 rounded-[14px] bg-success-soft px-4 py-3 text-[15px]"><T>{"Your new email address is confirmed."}</T></div>
       )}
 
       <div className="flex flex-col gap-6">
@@ -42,34 +51,34 @@ export default async function SettingsPage({ searchParams }: PageProps<"/dashboa
           <VisibilityToggle initial={profile?.employer_visibility ?? false} />
 
           <details className="mt-6 rounded-[12px] bg-surface px-4 py-3">
-            <summary className="cursor-pointer text-[15px] font-semibold">Consent history</summary>
+            <summary className="cursor-pointer text-[15px] font-semibold"><T>{"Consent history"}</T></summary>
             {history.length === 0 ? (
-              <p className="mt-3 text-sm text-ink-muted">No consent records yet.</p>
+              <p className="mt-3 text-sm text-ink-muted"><T>{"No consent records yet."}</T></p>
             ) : (
               <ul className="mt-3 divide-y divide-line">
                 {history.map((c) => (
                   <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
                     <span>
-                      {CONSENT_LABELS[c.consent_type] ?? c.consent_type}{" "}
+                      <T>{CONSENT_LABELS[c.consent_type] ?? c.consent_type}</T>{" "}
                       {c.action === "accepted" ? (
-                        <Badge tone="success">Accepted</Badge>
+                        <Badge tone="success"><T>{"Accepted"}</T></Badge>
                       ) : c.action === "acknowledged" ? (
-                        <Badge tone="success">Acknowledged</Badge>
+                        <Badge tone="success"><T>{"Acknowledged"}</T></Badge>
                       ) : c.granted ? (
-                        <Badge tone="success">Agreed</Badge>
+                        <Badge tone="success"><T>{"Agreed"}</T></Badge>
                       ) : (
-                        <Badge>Withdrawn</Badge>
+                        <Badge><T>{"Withdrawn"}</T></Badge>
                       )}
                     </span>
-                    <span className="text-ink-muted">{dateTime(c.created_at)} · version {c.version}</span>
+                    <span className="text-ink-muted">{dateTime(c.created_at, locale)} · <T>{"version"}</T> {c.version}</span>
                   </li>
                 ))}
               </ul>
             )}
           </details>
           <p className="mt-4 text-sm text-ink-muted">
-            Read how we handle your information in our{" "}
-            <a href={site.links.privacy} className="font-semibold text-indigo hover:underline">Privacy Policy</a>.
+            <T>{"Read how we handle your information in our"}</T>{" "}
+            <a href={site.links.privacy} className="font-semibold text-indigo hover:underline"><T>{"Privacy Policy"}</T></a>.
           </p>
         </Panel>
 
@@ -85,12 +94,16 @@ export default async function SettingsPage({ searchParams }: PageProps<"/dashboa
           />
         </Panel>
 
+        <Panel title="Language">
+          <LanguagePreference current={locale} />
+        </Panel>
+
         <Panel title="Email address">
           {usesPassword ? (
             <EmailForm current={user.email} />
           ) : (
             <p className="text-[15px]">
-              You sign in with Google as <strong>{user.email}</strong>. To use a different email, sign in with that Google account instead.
+              <T>{"You sign in with Google as"}</T>{" "}<strong>{user.email}</strong><T>{". To use a different email, sign in with that Google account instead."}</T>
             </p>
           )}
         </Panel>
@@ -100,7 +113,7 @@ export default async function SettingsPage({ searchParams }: PageProps<"/dashboa
             <PasswordForm />
           ) : (
             <p className="text-[15px] text-ink-muted">
-              You sign in with Google, so there is no Handson password to change. Manage your password in your Google account.
+              <T>{"You sign in with Google, so there is no Handson password to change. Manage your password in your Google account."}</T>
             </p>
           )}
         </Panel>
@@ -108,18 +121,18 @@ export default async function SettingsPage({ searchParams }: PageProps<"/dashboa
         <Panel title="Account">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-[15px] text-ink-muted">
-              To delete your account and all your data, contact{" "}
+              <T>{"To delete your account and all your data, contact"}</T>{" "}
               <a href={`mailto:${site.contact.email}?subject=Delete my Handson account`} className="font-semibold text-indigo hover:underline">
                 {site.contact.email}
               </a>{" "}
-              from your registered email.
+              <T>{"from your registered email."}</T>
             </p>
             <form action={signOutAction}>
-              <Button type="submit" variant="secondary">Sign out</Button>
+              <Button type="submit" variant="secondary"><T>{"Sign out"}</T></Button>
             </form>
           </div>
           <p className="mt-4 text-sm text-ink-muted">
-            Need help? <Link href={site.links.contact} className="font-semibold text-indigo hover:underline">Contact us</Link>.
+            <T>{"Need help?"}</T>{" "}<Link href={site.links.contact} className="font-semibold text-indigo hover:underline"><T>{"Contact us"}</T></Link>.
           </p>
         </Panel>
       </div>

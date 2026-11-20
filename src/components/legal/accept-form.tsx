@@ -6,6 +6,7 @@ import { acceptLegalAction, type AcceptState } from "@/app/legal/accept/actions"
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/feedback";
 import { Checkbox } from "@/components/ui/field";
+import { T } from "@/i18n/client";
 
 type Doc = { id: string; kind: "terms" | "privacy"; version: string; title: string; summary: string | null; effective: string };
 
@@ -13,7 +14,7 @@ function Submit() {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" loading={pending}>
-      Continue
+      <T>{"Continue"}</T>
     </Button>
   );
 }
@@ -31,12 +32,12 @@ export function AcceptLegalForm({ documents, next }: { documents: Doc[]; next?: 
         <section key={d.id} className="rounded-[14px] border border-line p-4 sm:p-5">
           <h2 className="text-lg">{d.title}</h2>
           <p className="mt-1 text-sm text-ink-muted">
-            Version {d.version} · Effective {d.effective}
+            <T>{"Version"}</T>{" "}{d.version}{" "}<T>{"· Effective"}</T>{" "}{d.effective}
           </p>
           {d.summary && <p className="mt-3 whitespace-pre-line text-[15px]">{d.summary}</p>}
           <p className="mt-3 text-[15px]">
             <a href={`/legal/${d.kind}`} target="_blank" rel="noopener" className="font-semibold text-indigo hover:underline">
-              Read the full {d.kind === "terms" ? "Terms and Conditions" : "Privacy Notice"}
+              <T>{"Read the full"}</T>{" "}<T>{d.kind === "terms" ? "Terms and Conditions" : "Privacy Notice"}</T>
             </a>
           </p>
         </section>

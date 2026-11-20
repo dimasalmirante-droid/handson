@@ -6,10 +6,13 @@ import { Alert } from "@/components/ui/feedback";
 import { getCurrentLegalDocuments, getLegalHistory, getPublishedLegalDocument } from "@/lib/data/legal";
 import { LEGAL_LABELS, formatDate, isLegalKind } from "@/lib/legal";
 import { site } from "@/lib/site";
+import { T } from "@/i18n/client";
+import { getT } from "@/i18n/server";
 
 export async function generateMetadata({ params }: PageProps<"/legal/[kind]">): Promise<Metadata> {
   const { kind } = await params;
-  return { title: isLegalKind(kind) ? LEGAL_LABELS[kind] : "Not found" };
+  const t = await getT();
+  return { title: t(isLegalKind(kind) ? LEGAL_LABELS[kind] : "Not found") };
 }
 
 /** The current version of the Terms or the Privacy Notice, readable without signing in. */
@@ -22,11 +25,11 @@ export default async function CurrentLegalDocumentPage({ params }: PageProps<"/l
   if (!doc) {
     return (
       <div>
-        <h1 className="text-[clamp(28px,4vw,40px)] tracking-[-0.03em]">{LEGAL_LABELS[kind]}</h1>
+        <h1 className="text-[clamp(28px,4vw,40px)] tracking-[-0.03em]"><T>{LEGAL_LABELS[kind]}</T></h1>
         <Alert tone="info" className="mt-6">
-          The final version is being prepared. Until it is published, see the draft on{" "}
+          <T>{"The final version is being prepared. Until it is published, see the draft on"}</T>{" "}
           <a href={kind === "terms" ? site.links.terms : site.links.privacy} className="font-semibold text-indigo hover:underline">
-            handson.cloud
+            <T>{"handson.cloud"}</T>
           </a>
           .
         </Alert>
@@ -40,14 +43,14 @@ export default async function CurrentLegalDocumentPage({ params }: PageProps<"/l
       <LegalDocumentView title={doc.title} version={doc.version} effectiveAt={doc.effective_at} body={doc.body} />
       {history.length > 0 && (
         <section className="mt-12 border-t border-line pt-6">
-          <h2 className="text-lg">Earlier versions</h2>
+          <h2 className="text-lg"><T>{"Earlier versions"}</T></h2>
           <ul className="mt-3 flex flex-col gap-2 text-[15px]">
             {history.map((h) => (
               <li key={h.id}>
                 <Link href={`/legal/${kind}/${encodeURIComponent(h.version)}`} className="font-semibold text-indigo hover:underline">
-                  Version {h.version}
+                  <T>{"Version"}</T>{" "}{h.version}
                 </Link>{" "}
-                <span className="text-ink-muted">· effective {formatDate(h.effective_at)}</span>
+                <span className="text-ink-muted"><T>{"· effective"}</T>{" "}{formatDate(h.effective_at)}</span>
               </li>
             ))}
           </ul>

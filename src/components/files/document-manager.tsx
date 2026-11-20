@@ -9,6 +9,8 @@ import { Alert, Badge } from "@/components/ui/feedback";
 import { cn } from "@/lib/cn";
 import type { DocumentRecord } from "@/lib/data/student";
 import { DOCUMENT_TYPE_LABELS, SINGLE_FILE_TYPES, acceptAttribute, formatBytes, formatsLabel, type DocumentType } from "@/lib/files";
+import { T, useLocale, useT } from "@/i18n/client";
+import { LOCALE_TAGS, type Locale } from "@/i18n/config";
 
 const SLOTS: { type: DocumentType; required: boolean; note: string }[] = [
   { type: "cv", required: true, note: "Counts for 10% of your profile" },
@@ -25,14 +27,15 @@ const VERIFICATION: Record<string, { tone: "neutral" | "indigo" | "success" | "d
   rejected: { tone: "danger", label: "Rejected" },
 };
 
-const dateLabel = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+const dateLabel = (iso: string, locale: Locale) =>
+  new Date(iso).toLocaleDateString(LOCALE_TAGS[locale], { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Maputo" });
 
 /** All document types, each with its files and upload / replace / open / remove actions. */
 export function DocumentManager({ documents }: { documents: DocumentRecord[] }) {
   return (
     <div className="flex flex-col gap-3">
       <p className="text-sm text-ink-muted">
-        Accepted: {formatsLabel("document")}, up to 10 MB each. Files are stored privately; only you and authorised Handson staff can open them.
+        <T>{"Accepted:"}</T>{" "}{formatsLabel("document")}<T>{", up to 10 MB each. Files are stored privately; only you and authorised Handson staff can open them."}</T>
       </p>
       <ul className="flex flex-col gap-3">
         {SLOTS.map((slot) => (
@@ -51,7 +54,9 @@ function DocumentSlot({ type, required, note, files }: { type: DocumentType; req
   const [removeError, setRemoveError] = useState<string | null>(null);
   const single = SINGLE_FILE_TYPES.includes(type);
   const busy = state.phase === "checking" || state.phase === "uploading" || state.phase === "verifying";
-  const status = uploadStatusText(state);
+  const t = useT();
+  const locale = useLocale();
+  const status = uploadStatusText(state, t);
   const label = DOCUMENT_TYPE_LABELS[type];
   const inputId = `upload-${type}`;
 
@@ -60,11 +65,11 @@ function DocumentSlot({ type, required, note, files }: { type: DocumentType; req
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="font-semibold">
-            {label}
+            {t(label)}
             {required && <span className="ml-0.5 text-danger" aria-hidden>*</span>}
-            {required && <span className="sr-only"> (required)</span>}
+            {required && <span className="sr-only">{" "}<T>{"(required)"}</T></span>}
           </p>
-          <p className="text-sm text-ink-muted">{note}</p>
+          <p className="text-sm text-ink-muted">{t(note)}</p>
         </div>
         <div>
           <input
@@ -97,9 +102,9 @@ function DocumentSlot({ type, required, note, files }: { type: DocumentType; req
             tabIndex={0}
             role="button"
             aria-disabled={busy || undefined}
-            aria-label={`${files.length && single ? "Replace" : files.length ? "Add another" : "Upload"} ${label}`}
+            aria-label={`${t(files.length && single ? "Replace" : files.length ? "Add another" : "Upload")} ${t(label)}`}
           >
-            {busy ? "Uploading…" : files.length && single ? "Replace" : files.length ? "Add another" : "Upload"}
+            {t(busy ? "Uploading…" : files.length && single ? "Replace" : files.length ? "Add another" : "Upload")}
           </label>
         </div>
       </div>
@@ -117,7 +122,7 @@ function DocumentSlot({ type, required, note, files }: { type: DocumentType; req
         {state.phase === "error" && (
           <Alert tone="danger" className="mt-3">
             {state.message}{" "}
-            <button type="button" className="font-semibold underline" onClick={reset}>Dismiss</button>
+            <button type="button" className="font-semibold underline" onClick={reset}><T>{"Dismiss"}</T></button>
           </Alert>
         )}
         {removeError && <Alert tone="danger" className="mt-3">{removeError}</Alert>}
@@ -132,23 +137,23 @@ function DocumentSlot({ type, required, note, files }: { type: DocumentType; req
                 <div className="min-w-0">
                   <p className="truncate text-[15px] font-medium" title={f.original_filename}>{f.original_filename}</p>
                   <p className="text-sm text-ink-muted">
-                    {formatBytes(f.size_bytes)} · uploaded {dateLabel(f.created_at)}
+                    {formatBytes(f.size_bytes)} · {t("uploaded {date}", { date: dateLabel(f.created_at, locale) })}
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge tone={v.tone}>{v.label}</Badge>
                   <a href={`/files/${f.id}`} target="_blank" rel="noopener" className={buttonClasses({ variant: "ghost", size: "sm" })}>
-                    Open
+                    <T>{"Open"}</T>
                   </a>
                   <a href={`/files/${f.id}?download=1`} className={buttonClasses({ variant: "ghost", size: "sm" })}>
-                    Download
+                    <T>{"Download"}</T>
                   </a>
                   <Button
                     size="sm"
                     variant="ghost"
                     disabled={removing}
                     onClick={() => {
-                      if (!window.confirm(`Remove ${f.original_filename}? This cannot be undone.`)) return;
+                      if (!window.confirm(t("Remove {file}? This cannot be undone.", { file: f.original_filename }))) return;
                       startRemove(async () => {
                         setRemoveError(null);
                         const r = await deleteDocument(f.id);
@@ -157,7 +162,7 @@ function DocumentSlot({ type, required, note, files }: { type: DocumentType; req
                       });
                     }}
                   >
-                    Remove
+                    <T>{"Remove"}</T>
                   </Button>
                 </div>
               </li>

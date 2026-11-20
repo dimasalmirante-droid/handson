@@ -3,8 +3,12 @@ import Link from "next/link";
 import { Divider, GoogleForm, LoginForm } from "@/components/auth/forms";
 import { Alert } from "@/components/ui/feedback";
 import { safeNextPath } from "@/lib/auth/redirects";
+import { getT } from "@/i18n/server";
 
-export const metadata: Metadata = { title: "Log in" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t("Log in") };
+}
 
 const errors: Record<string, string> = {
   google: "Google sign-in could not be completed. Please try again or use your email and password.",
@@ -18,6 +22,7 @@ const notices: Record<string, string> = {
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const sp = await searchParams;
+  const t = await getT();
   const error = typeof sp.error === "string" ? errors[sp.error] : undefined;
   const notice = typeof sp.notice === "string" ? notices[sp.notice] : undefined;
   const nextParam = typeof sp.next === "string" ? sp.next : undefined;
@@ -25,8 +30,8 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
 
   return (
     <div>
-      <h1 className="text-[36px] tracking-[-0.03em]">Welcome back</h1>
-      <p className="mt-2 text-ink-muted">Log in to continue building your profile.</p>
+      <h1 className="text-[36px] tracking-[-0.03em]">{t("Welcome back")}</h1>
+      <p className="mt-2 text-ink-muted">{t("Log in to continue building your profile.")}</p>
 
       <div className="mt-6 flex flex-col gap-5">
         {error && <Alert tone="danger">{error}</Alert>}
@@ -37,9 +42,9 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
       </div>
 
       <p className="mt-8 text-[15px] text-ink-muted">
-        New to Handson?{" "}
+        {t("New to Handson?")}{" "}
         <Link href={next ? `/register?next=${encodeURIComponent(next)}` : "/register"} className="font-semibold text-indigo hover:underline">
-          Create an account
+          {t("Create an account")}
         </Link>
       </p>
     </div>

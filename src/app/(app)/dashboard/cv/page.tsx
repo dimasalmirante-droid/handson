@@ -6,8 +6,14 @@ import { Alert } from "@/components/ui/feedback";
 import { requireStudent } from "@/lib/auth/session";
 import { loadCv } from "@/lib/cv/data";
 import { CV_HEADINGS, cvGaps, type CvEntry } from "@/lib/cv/model";
+import { T } from "@/i18n/client";
+import { getT } from "@/i18n/server";
+import { getLocale } from "@/i18n/server";
 
-export const metadata: Metadata = { title: "My CV" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t("My CV") };
+}
 
 const GAP_LINKS: Record<string, { label: string; href: string }> = {
   name: { label: "Add your name", href: "/dashboard/profile" },
@@ -36,11 +42,12 @@ function Entries({ items }: { items: CvEntry[] }) {
 
 export default async function CvPage() {
   const user = await requireStudent("/dashboard/cv");
-  const cv = await loadCv(user.id, "pt");
-  if (!cv) return <Alert tone="danger">Your profile could not be loaded. Please refresh the page.</Alert>;
+  const locale = await getLocale();
+  const cv = await loadCv(user.id, locale);
+  if (!cv) return <Alert tone="danger"><T>{"Your profile could not be loaded. Please refresh the page."}</T></Alert>;
 
   const gaps = cvGaps(cv);
-  const h = CV_HEADINGS.pt;
+  const h = CV_HEADINGS[locale];
 
   return (
     <>
@@ -50,12 +57,12 @@ export default async function CvPage() {
       />
 
       <div className="mb-6 flex flex-wrap gap-3">
-        <ButtonLink href="/cv?download=1" prefetch={false}>Download CV (Portuguese)</ButtonLink>
-        <ButtonLink href="/cv?lang=en&download=1" prefetch={false} variant="secondary">Download CV (English)</ButtonLink>
-        <ButtonLink href="/cv" prefetch={false} variant="ghost" target="_blank" rel="noopener">Open PDF</ButtonLink>
+        <ButtonLink href="/cv?download=1" prefetch={false}><T>{"Download CV (Portuguese)"}</T></ButtonLink>
+        <ButtonLink href="/cv?lang=en&download=1" prefetch={false} variant="secondary"><T>{"Download CV (English)"}</T></ButtonLink>
+        <ButtonLink href="/cv" prefetch={false} variant="ghost" target="_blank" rel="noopener"><T>{"Open PDF"}</T></ButtonLink>
       </div>
       <p className="mb-6 text-[15px] text-ink-muted">
-        Prefer to send a link? <Link className="font-semibold text-indigo hover:underline" href="/dashboard/settings#public-profile">Turn on your public profile</Link>.
+        <T>{"Prefer to send a link?"}</T>{" "}<Link className="font-semibold text-indigo hover:underline" href="/dashboard/settings#public-profile"><T>{"Turn on your public profile"}</T></Link>.
       </p>
 
       {gaps.length > 0 && (
@@ -63,7 +70,7 @@ export default async function CvPage() {
           <ul className="mt-1 flex flex-col gap-1">
             {gaps.map((g) => (
               <li key={g}>
-                • <Link className="font-medium underline" href={GAP_LINKS[g].href}>{GAP_LINKS[g].label}</Link>
+                • <Link className="font-medium underline" href={GAP_LINKS[g].href}><T>{GAP_LINKS[g].label}</T></Link>
               </li>
             ))}
           </ul>
@@ -71,9 +78,9 @@ export default async function CvPage() {
       )}
 
       <Panel title="Preview">
-        <article lang="pt" className="flex flex-col gap-6">
+        <article lang={locale} className="flex flex-col gap-6">
           <header>
-            <h2 className="text-2xl">{cv.name || "Your name"}</h2>
+            <h2 className="text-2xl">{cv.name || <T>{"Your name"}</T>}</h2>
             {cv.headline && <p className="mt-1 font-medium text-indigo">{cv.headline}</p>}
             {cv.contact.length > 0 && <p className="mt-1 text-sm text-ink-muted">{cv.contact.join(" · ")}</p>}
           </header>

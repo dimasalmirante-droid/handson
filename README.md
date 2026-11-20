@@ -69,7 +69,16 @@ Tokens and guidance live in the **Handson** design system (Claude artifact) and 
 
 ## Localisation
 
-English ships first. To add Portuguese: create `src/i18n/messages/pt.json` with the same keys as `en.json`, add `"pt"` to `locales` in `src/i18n/config.ts` and register its loader in `src/i18n/get-messages.ts`.
+Portuguese is the default; English is available from the PT · EN switcher and the student's settings. The choice is kept in the `handson_locale` cookie and, for students, in `profiles.preferred_locale`.
+
+Texts are written in English in the code and translated through `src/i18n/messages/pt.json`, keyed by the English text:
+
+- Server components: `const t = await getT()` (`@/i18n/server`), then `t("Save changes")`.
+- Client components: `const t = useT()` (`@/i18n/client`).
+- Texts that arrive as data (validation and server messages, labels from lists) are translated where they are shown: `Field`, `Alert`, `Badge`, `PageHeader` and `Panel` translate string labels, hints and messages, and `<T>` wraps any other text.
+- Placeholders: `t("Step {step} of 6", { step })`. A catalogue key with placeholders also translates messages that were filled in before translation (for example server messages).
+
+`src/i18n/__tests__/catalogue.test.ts` fails when a student-facing text has no Portuguese translation. The administrator and employer areas are English for now.
 
 Market defaults (Mozambique, +258, MZN, Africa/Maputo) are in `src/lib/site.ts`.
 

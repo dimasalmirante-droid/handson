@@ -7,8 +7,13 @@ import { requireStudent } from "@/lib/auth/session";
 import { countryOptions, splitPhone } from "@/lib/countries";
 import { getCatalogues } from "@/lib/data/catalogues";
 import { getInterests, getPhotoUrl, getProfile } from "@/lib/data/student";
+import { getT } from "@/i18n/server";
+import { getLocale } from "@/i18n/server";
 
-export const metadata: Metadata = { title: "My profile" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t("My profile") };
+}
 
 export default async function ProfilePage() {
   const user = await requireStudent("/dashboard/profile");
@@ -44,7 +49,7 @@ export default async function ProfilePage() {
             embedded
             photo={<PhotoUploader photoUrl={photoUrl} initials={initials} />}
             initial={initial}
-            countries={countryOptions("en")}
+            countries={countryOptions(await getLocale())}
             provinces={catalogues.provinces}
             districts={catalogues.districts}
           />

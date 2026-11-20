@@ -34,7 +34,7 @@ export default async function StudentsPage({ searchParams }: PageProps<"/admin/s
   const { role } = await requireAdmin("reviewer");
   const sp = await searchParams;
   const f = parseFilters(sp);
-  const [{ rows, total }, catalogues] = await Promise.all([searchStudents(f), getCatalogues()]);
+  const [{ rows, total }, catalogues] = await Promise.all([searchStudents(f), getCatalogues("en")]);
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const activeFilters = Object.entries(f).filter(([k, v]) => k !== "page" && k !== "sort" && v !== undefined).length;
   const canExport = roleAtLeast(role, "admin");

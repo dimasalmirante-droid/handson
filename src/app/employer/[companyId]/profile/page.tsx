@@ -8,6 +8,7 @@ import { companyRoleAtLeast, requireCompanyRole } from "@/lib/auth/company";
 import { getContexts } from "@/lib/auth/contexts";
 import { listWorkspaces } from "@/lib/auth/destination";
 import { createClient } from "@/lib/supabase/server";
+import { I18nProvider } from "@/i18n/client";
 
 export const metadata: Metadata = { title: "Company profile" };
 
@@ -31,6 +32,7 @@ export default async function CompanyProfilePage({ params }: PageProps<"/employe
   ]);
 
   return (
+    <I18nProvider locale="en">
     <AppShell email={user.email} home={`/employer/${company.id}`} workspaces={workspaces} current={`company:${company.id}`}>
       <div className="mx-auto max-w-4xl">
         <PageHeader
@@ -85,5 +87,6 @@ export default async function CompanyProfilePage({ params }: PageProps<"/employe
         )}
       </div>
     </AppShell>
+    </I18nProvider>
   );
 }

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
+import { useT } from "@/i18n/client";
 
 export const DASHBOARD_NAV = [
   { href: "/dashboard", label: "Overview" },
@@ -18,8 +19,9 @@ export const DASHBOARD_NAV = [
 /** Sidebar on desktop, scrollable tabs on mobile. */
 export function DashboardNav() {
   const pathname = usePathname();
+  const t = useT();
   return (
-    <nav aria-label="Dashboard" className="-mx-4 overflow-x-auto px-4 lg:mx-0 lg:overflow-visible lg:px-0">
+    <nav aria-label={t("Dashboard")} className="-mx-4 overflow-x-auto px-4 lg:mx-0 lg:overflow-visible lg:px-0">
       <ul className="flex min-w-max gap-1 lg:min-w-0 lg:flex-col">
         {DASHBOARD_NAV.map((item) => {
           const active = item.href === "/dashboard" ? pathname === item.href : pathname.startsWith(item.href);
@@ -33,7 +35,7 @@ export function DashboardNav() {
                   active ? "bg-ink text-white" : "text-ink hover:bg-indigo-soft hover:text-indigo",
                 )}
               >
-                {item.label}
+                {t(item.label)}
               </Link>
             </li>
           );

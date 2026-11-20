@@ -7,8 +7,13 @@ import { getLegalStatus } from "@/lib/auth/contexts";
 import { safeNextPath } from "@/lib/auth/redirects";
 import { requireUser } from "@/lib/auth/session";
 import { formatDate } from "@/lib/legal";
+import { T } from "@/i18n/client";
+import { getT } from "@/i18n/server";
 
-export const metadata: Metadata = { title: "Terms and Privacy Notice" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t("Terms and Privacy Notice") };
+}
 
 /**
  * One-time screen shown when the current Terms and/or Privacy Notice have
@@ -40,9 +45,9 @@ export default async function AcceptLegalPage({ searchParams }: PageProps<"/lega
         />
       </div>
       <div className="mt-8 border-t border-line pt-6">
-        <p className="mb-3 text-sm text-ink-muted">If you do not agree, you can sign out. Your account is kept.</p>
+        <p className="mb-3 text-sm text-ink-muted"><T>{"If you do not agree, you can sign out. Your account is kept."}</T></p>
         <form action={signOutAction}>
-          <Button type="submit" variant="secondary">Sign out</Button>
+          <Button type="submit" variant="secondary"><T>{"Sign out"}</T></Button>
         </form>
       </div>
     </div>

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/feedback";
 import { ROLE_LABELS, requireAdmin, roleAtLeast } from "@/lib/auth/admin";
 import { getContexts } from "@/lib/auth/contexts";
 import { listWorkspaces } from "@/lib/auth/destination";
+import { I18nProvider } from "@/i18n/client";
 
 export const metadata: Metadata = { title: { default: "Admin", template: "%s | Handson Admin" } };
 
@@ -35,7 +36,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       : []),
   ];
 
+  // The admin area is English-only for now.
   return (
+    <I18nProvider locale="en">
     <div className="flex min-h-full flex-1 flex-col">
       <header className="border-b border-ink bg-ink text-white">
         <div className="mx-auto flex h-[64px] max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
@@ -65,5 +68,6 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         </div>
       </main>
     </div>
+    </I18nProvider>
   );
 }

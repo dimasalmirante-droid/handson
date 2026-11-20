@@ -7,6 +7,7 @@ import { uploadStatusText, useUpload } from "@/components/files/use-upload";
 import { Button, buttonClasses } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { acceptAttribute } from "@/lib/files";
+import { T, useT } from "@/i18n/client";
 
 /** Profile photo: preview, upload, replace and remove. */
 export function PhotoUploader({ photoUrl, initials }: { photoUrl: string | null; initials: string }) {
@@ -18,13 +19,14 @@ export function PhotoUploader({ photoUrl, initials }: { photoUrl: string | null;
   const [error, setError] = useState<string | null>(null);
   const busy = state.phase === "checking" || state.phase === "uploading" || state.phase === "verifying";
   const shown = preview ?? photoUrl;
+  const t = useT();
 
   return (
     <div className="flex items-center gap-5">
       <div className="relative size-20 shrink-0 overflow-hidden rounded-full bg-lime">
         {shown ? (
           // eslint-disable-next-line @next/next/no-img-element -- short-lived signed URL from private storage
-          <img src={shown} alt="Your profile photo" className="size-full object-cover" />
+          <img src={shown} alt={t("Your profile photo")} className="size-full object-cover" />
         ) : (
           <span className="flex size-full items-center justify-center font-display text-2xl font-bold text-ink" aria-hidden>
             {initials}
@@ -37,8 +39,8 @@ export function PhotoUploader({ photoUrl, initials }: { photoUrl: string | null;
         )}
       </div>
       <div>
-        <p className="text-sm font-semibold">Profile photo</p>
-        <p className="text-sm text-ink-muted">Optional. A clear, professional photo. JPG, PNG or WebP, up to 2 MB.</p>
+        <p className="text-sm font-semibold"><T>{"Profile photo"}</T></p>
+        <p className="text-sm text-ink-muted"><T>{"Optional. A clear, professional photo. JPG, PNG or WebP, up to 2 MB."}</T></p>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <input
             ref={input}
@@ -71,7 +73,7 @@ export function PhotoUploader({ photoUrl, initials }: { photoUrl: string | null;
             }}
             className={cn(buttonClasses({ variant: "secondary", size: "sm" }), "cursor-pointer", busy && "pointer-events-none opacity-60")}
           >
-            {shown ? "Change photo" : "Upload photo"}
+            {t(shown ? "Change photo" : "Upload photo")}
           </label>
           {shown && !busy && (
             <Button
@@ -87,12 +89,12 @@ export function PhotoUploader({ photoUrl, initials }: { photoUrl: string | null;
                 })
               }
             >
-              Remove
+              <T>{"Remove"}</T>
             </Button>
           )}
         </div>
         <p aria-live="polite" className={cn("mt-1 text-sm", state.phase === "error" || error ? "font-medium text-danger" : "text-ink-muted")}>
-          {state.phase === "error" ? state.message : error ?? (busy ? uploadStatusText(state) : "")}
+          {state.phase === "error" ? t(state.message) : error ? t(error) : busy ? uploadStatusText(state, t) : ""}
         </p>
       </div>
     </div>

@@ -7,6 +7,7 @@ import { DocumentManager } from "@/components/files/document-manager";
 import { Field, Input, describedBy } from "@/components/ui/field";
 import type { DocumentRecord } from "@/lib/data/student";
 import type { FieldErrors } from "@/lib/validation/profile";
+import { T } from "@/i18n/client";
 
 type Values = Record<string, string>;
 
@@ -42,15 +43,15 @@ export function DocumentsStep({ initial, documents, embedded = false }: { initia
   return (
     <div>
       <section aria-labelledby="docs-heading">
-        <h2 id="docs-heading" className="text-xl">Documents</h2>
+        <h2 id="docs-heading" className="text-xl"><T>{"Documents"}</T></h2>
         <div className="mt-4">
           <DocumentManager documents={documents} />
         </div>
       </section>
 
       <section aria-labelledby="links-heading" className="mt-10">
-        <h2 id="links-heading" className="text-xl">Portfolio and online profiles</h2>
-        <p className="mt-1 text-ink-muted">Links help employers see your work. They save automatically.</p>
+        <h2 id="links-heading" className="text-xl"><T>{"Portfolio and online profiles"}</T></h2>
+        <p className="mt-1 text-ink-muted"><T>{"Links help employers see your work. They save automatically."}</T></p>
         <div className="mt-6 grid gap-x-5 gap-y-6 sm:grid-cols-2">
           {link("linkedinUrl", "LinkedIn", "linkedin.com/in/your-name")}
           {link("githubUrl", "GitHub", "github.com/your-username")}

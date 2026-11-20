@@ -25,6 +25,14 @@ export default defineConfig({
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
   use: {
     baseURL,
+    // The app defaults to Portuguese; these journeys check the English texts.
+    // Portuguese is covered by its own tests, which start without this cookie.
+    storageState: {
+      cookies: [
+        { name: "handson_locale", value: "en", domain: new URL(baseURL).hostname, path: "/", expires: -1, httpOnly: false, secure: false, sameSite: "Lax" },
+      ],
+      origins: [],
+    },
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
