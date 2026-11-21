@@ -6,12 +6,8 @@ import { cn } from "@/lib/cn";
 import { useT } from "@/i18n/client";
 
 export const DASHBOARD_NAV = [
-  { href: "/dashboard", label: "Overview" },
+  { href: "/dashboard", label: "Home" },
   { href: "/dashboard/profile", label: "My profile" },
-  { href: "/dashboard/education", label: "Education" },
-  { href: "/dashboard/skills", label: "Skills" },
-  { href: "/dashboard/experience", label: "Experience" },
-  { href: "/dashboard/documents", label: "Documents" },
   { href: "/dashboard/cv", label: "My CV" },
   { href: "/dashboard/settings", label: "Settings" },
 ] as const;
