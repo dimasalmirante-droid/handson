@@ -1,28 +1,7 @@
-import type { Metadata } from "next";
-import { PageHeader, Panel } from "@/components/dashboard/page-header";
-import { DocumentsStep } from "@/components/onboarding/documents-step";
-import { requireStudent } from "@/lib/auth/session";
-import { getDocuments, getProfile } from "@/lib/data/student";
-import { getT } from "@/i18n/server";
+import { redirect } from "next/navigation";
+import { profileEditHref } from "@/lib/dashboard/profile-sections";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const t = await getT();
-  return { title: t("Documents") };
-}
-
-export default async function DashboardDocumentsPage() {
-  const user = await requireStudent("/dashboard/documents");
-  const [profile, documents] = await Promise.all([getProfile(user.id), getDocuments(user.id)]);
-  return (
-    <>
-      <PageHeader title="Documents" lead="Your CV, transcript, certificates and portfolio links. Stored privately." />
-      <Panel>
-        <DocumentsStep
-          embedded
-          initial={{ linkedinUrl: profile?.linkedin_url ?? "", githubUrl: profile?.github_url ?? "", portfolioUrl: profile?.portfolio_url ?? "" }}
-          documents={documents}
-        />
-      </Panel>
-    </>
-  );
+/** Moved: this section is now edited from My profile. Kept so existing links keep working. */
+export default function MovedDocumentsPage() {
+  redirect(profileEditHref("documents"));
 }

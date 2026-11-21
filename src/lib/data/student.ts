@@ -236,12 +236,12 @@ export const getConsentHistory = cache(async (userId: string): Promise<ConsentRe
 
 /** Where each completion section is edited on the dashboard. */
 export const SECTION_DASHBOARD_HREF: Record<string, string> = {
-  personal: "/dashboard/profile",
-  interests: "/dashboard/profile#interests",
-  education: "/dashboard/education",
-  skills: "/dashboard/skills",
-  experience: "/dashboard/experience",
-  documents: "/dashboard/documents",
+  personal: "/dashboard/profile?edit=about",
+  interests: "/dashboard/profile?edit=preferences",
+  education: "/dashboard/profile?edit=education",
+  skills: "/dashboard/profile?edit=skills",
+  experience: "/dashboard/profile?edit=experience",
+  documents: "/dashboard/profile?edit=documents",
 };
 
 /** Human-readable labels for the `missing` codes returned by profile_completion(). */

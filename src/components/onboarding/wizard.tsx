@@ -9,6 +9,7 @@ import { Alert } from "@/components/ui/feedback";
 import { cn } from "@/lib/cn";
 import { STEPS } from "@/lib/onboarding/steps";
 import { T, useT } from "@/i18n/client";
+import { useEditPanel } from "@/components/dashboard/edit-panel";
 
 /* ------------------------------------------------------------------ */
 /* Stepper                                                             */
@@ -213,8 +214,10 @@ export function StepFooter({
 export function EmbeddedSave({ status, onSave }: { status: SaveStatus; onSave: () => Promise<boolean> }) {
   const [pending, start] = useTransition();
   const [checked, setChecked] = useState<"ok" | "error" | null>(null);
+  // In an edit panel the button checks the fields and closes the panel.
+  const panel = useEditPanel();
   return (
-    <div className="mt-10 flex flex-col-reverse gap-3 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between">
+    <div className="mt-8 flex flex-col-reverse gap-3 border-t border-line pt-5 sm:flex-row sm:items-center sm:justify-between">
       <div aria-live="polite">
         {checked === "error" ? (
           <p className="text-sm font-medium text-danger"><T>{"Some required fields need attention."}</T></p>
@@ -226,9 +229,15 @@ export function EmbeddedSave({ status, onSave }: { status: SaveStatus; onSave: (
       </div>
       <Button
         loading={pending}
-        onClick={() => start(async () => setChecked((await onSave()) ? "ok" : "error"))}
+        onClick={() =>
+          start(async () => {
+            const ok = await onSave();
+            setChecked(ok ? "ok" : "error");
+            if (ok) panel?.close();
+          })
+        }
       >
-        <T>{"Save changes"}</T>
+        <T>{panel ? "Done" : "Save changes"}</T>
       </Button>
     </div>
   );

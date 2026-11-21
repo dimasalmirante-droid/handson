@@ -90,6 +90,26 @@ test.describe("student journey", () => {
     await expectNoHorizontalScroll(page);
   });
 
+  test("profile is shown as a page and each section opens in an edit panel @mobile", async ({ page }) => {
+    await logIn(page, student);
+    await page.goto("/dashboard/profile");
+    await expect(page.getByRole("heading", { name: "Education" })).toBeVisible();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    await page.goto("/dashboard/profile?edit=skills");
+    const panel = page.getByRole("dialog", { name: "Skills and languages" });
+    await expect(panel).toBeVisible();
+    await expectNoHorizontalScroll(page);
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page).toHaveURL(/\/dashboard\/profile(#skills)?$/);
+
+    // Old section pages still work and open the matching panel.
+    await page.goto("/dashboard/education");
+    await expect(page).toHaveURL(/edit=education/);
+    await expect(page.getByRole("dialog", { name: "Education" })).toBeVisible();
+  });
+
   test("students cannot open the admin portal", async ({ page }) => {
     await logIn(page, student);
     const res = await page.goto("/admin");

@@ -16,11 +16,11 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 const GAP_LINKS: Record<string, { label: string; href: string }> = {
-  name: { label: "Add your name", href: "/dashboard/profile" },
-  headline: { label: "Write a professional headline", href: "/dashboard/profile" },
-  education: { label: "Add at least one qualification", href: "/dashboard/education" },
-  experience: { label: "Add an internship, job, volunteering, project or activity", href: "/dashboard/experience" },
-  skills: { label: "Add your skills", href: "/dashboard/skills" },
+  name: { label: "Add your name", href: "/dashboard/profile?edit=about" },
+  headline: { label: "Write a professional headline", href: "/dashboard/profile?edit=about" },
+  education: { label: "Add at least one qualification", href: "/dashboard/profile?edit=education" },
+  experience: { label: "Add an internship, job, volunteering, project or activity", href: "/dashboard/profile?edit=experience" },
+  skills: { label: "Add your skills", href: "/dashboard/profile?edit=skills" },
 };
 
 function Entries({ items }: { items: CvEntry[] }) {

@@ -1,25 +1,7 @@
-import type { Metadata } from "next";
-import { PageHeader, Panel } from "@/components/dashboard/page-header";
-import { SkillsStep } from "@/components/onboarding/skills-step";
-import { requireStudent } from "@/lib/auth/session";
-import { getCatalogues } from "@/lib/data/catalogues";
-import { getLanguages, getSkills } from "@/lib/data/student";
-import { getT } from "@/i18n/server";
+import { redirect } from "next/navigation";
+import { profileEditHref } from "@/lib/dashboard/profile-sections";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const t = await getT();
-  return { title: t("Skills") };
-}
-
-export default async function DashboardSkillsPage() {
-  const user = await requireStudent("/dashboard/skills");
-  const [mine, myLanguages, catalogues] = await Promise.all([getSkills(user.id), getLanguages(user.id), getCatalogues()]);
-  return (
-    <>
-      <PageHeader title="Skills" lead="Software, languages, technical and professional skills. Each change saves immediately." />
-      <Panel>
-        <SkillsStep embedded mine={mine} skills={catalogues.skills} categories={catalogues.skillCategories} myLanguages={myLanguages} languages={catalogues.languages} />
-      </Panel>
-    </>
-  );
+/** Moved: this section is now edited from My profile. Kept so existing links keep working. */
+export default function MovedSkillsPage() {
+  redirect(profileEditHref("skills"));
 }
