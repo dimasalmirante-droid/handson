@@ -20,6 +20,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const items = [
     { href: "/admin", label: "Overview" },
     { href: "/admin/students", label: "Students" },
+    { href: "/admin/learning", label: "Learning" },
     ...(roleAtLeast(role, "admin")
       ? [
           { href: "/admin/employers", label: "Employers" },

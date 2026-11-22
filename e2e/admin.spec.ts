@@ -11,6 +11,18 @@ test.describe("admin journey", () => {
     await expect(page.getByText("Registered students")).toBeVisible();
   });
 
+  test("learning results list courses and open a course without naming students", async ({ page }) => {
+    await logIn(page, admin);
+    await page.goto("/admin/learning");
+    await expect(page.getByRole("heading", { name: "Learning", level: 1 })).toBeVisible();
+    const pilot = page.getByRole("link", { name: "Preparação para o Trabalho (piloto)" });
+    await expect(pilot).toBeVisible();
+    await pilot.click();
+    await expect(page).toHaveURL(/\/admin\/learning\/[0-9a-f-]{36}/);
+    await expect(page.getByRole("heading", { name: "Where students stop" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Quiz: Caso prático: Amina e Délcio" })).toBeVisible();
+  });
+
   test("employer slug is suggested and a manual edit is preserved", async ({ page }) => {
     await logIn(page, admin);
     await page.goto("/admin/employers");
