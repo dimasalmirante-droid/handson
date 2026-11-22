@@ -1,3 +1,4 @@
+import { randomInt } from "node:crypto";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -93,6 +94,7 @@ export default async function LessonPage({ params }: PageProps<"/dashboard/learn
               passMark={outline.pass_mark}
               bestScore={here.best_score}
               nextHref={nextHref}
+              seed={randomInt(1, 2 ** 31 - 1)}
             />
           ) : (
             <Alert tone="info"><T>{"Get access to this course to take the quiz."}</T></Alert>
