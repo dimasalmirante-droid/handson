@@ -110,6 +110,19 @@ test.describe("student journey", () => {
     await expect(page.getByRole("dialog", { name: "Education" })).toBeVisible();
   });
 
+  test("onboarding asks only for what the profile needs; optional details live on the profile", async ({ page }) => {
+    await logIn(page, student);
+    await page.goto("/onboarding/personal");
+    await expect(page.getByLabel("First name")).toBeVisible();
+    await expect(page.getByLabel("Middle name")).toHaveCount(0);
+    await expect(page.getByLabel("Short summary")).toHaveCount(0);
+
+    await page.goto("/dashboard/profile?edit=about");
+    const panel = page.getByRole("dialog", { name: "About you" });
+    await expect(panel.getByLabel("Middle name")).toBeVisible();
+    await expect(panel.getByLabel("Short summary")).toBeVisible();
+  });
+
   test("students cannot open the admin portal", async ({ page }) => {
     await logIn(page, student);
     const res = await page.goto("/admin");

@@ -46,10 +46,17 @@ export function DocumentsStep({ initial, documents, embedded = false }: { initia
       <section aria-labelledby="docs-heading">
         <h2 id="docs-heading" className="text-xl"><T>{"Documents"}</T></h2>
         <div className="mt-4">
-          <DocumentManager documents={documents} />
+          <DocumentManager documents={documents} requiredOnly={!embedded} />
         </div>
       </section>
 
+      {!embedded && (
+        <p className="mt-6 text-sm text-ink-muted">
+          <T>{"Certificates, a cover letter and links to your work can be added from your profile at any time."}</T>
+        </p>
+      )}
+
+      {embedded && (
       <section aria-labelledby="links-heading" className="mt-10">
         <h2 id="links-heading" className="text-xl"><T>{"Portfolio and online profiles"}</T></h2>
         <p className="mt-1 text-ink-muted"><T>{"Links help employers see your work. They save automatically."}</T></p>
@@ -59,6 +66,7 @@ export function DocumentsStep({ initial, documents, embedded = false }: { initia
           <div className="sm:col-span-2">{link("portfolioUrl", "Portfolio or personal website", "your-site.com")}</div>
         </div>
       </section>
+      )}
 
       {embedded ? (
 

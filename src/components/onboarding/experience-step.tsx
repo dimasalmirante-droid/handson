@@ -83,6 +83,7 @@ export function ExperienceStep({ userId, records, embedded = false }: { userId: 
           key={editing.id || "new"}
           draftKey={`handson:experience-draft:${userId}`}
           initial={editing}
+          full={embedded}
           onCancel={() => setEditing(null)}
           onSaved={(isNew) => {
             setEditing(null);
@@ -123,11 +124,14 @@ export function ExperienceStep({ userId, records, embedded = false }: { userId: 
 function ExperienceForm({
   draftKey,
   initial,
+  full,
   onCancel,
   onSaved,
 }: {
   draftKey: string;
   initial: Values;
+  /** Show optional details; onboarding keeps them for the profile page. */
+  full: boolean;
   onCancel: () => void;
   onSaved: (isNew: boolean) => void;
 }) {
@@ -216,9 +220,11 @@ function ExperienceForm({
         <Field id="description" label="What you did" hint="Optional. Your main responsibilities." error={errors.description} className="sm:col-span-2">
           <Textarea id="description" maxLength={2000} value={values.description} onChange={(e) => set({ description: e.target.value })} {...aria("description", true)} />
         </Field>
+        {full && (
         <Field id="achievements" label="Achievements" hint="Optional. Results you are proud of, ideally with numbers." error={errors.achievements} className="sm:col-span-2">
           <Textarea id="achievements" maxLength={2000} value={values.achievements} onChange={(e) => set({ achievements: e.target.value })} {...aria("achievements", true)} />
         </Field>
+        )}
       </div>
 
       <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">

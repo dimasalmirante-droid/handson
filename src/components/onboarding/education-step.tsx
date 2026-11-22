@@ -110,6 +110,7 @@ export function EducationStep({
           draftKey={`handson:education-draft:${userId}`}
           initial={editing}
           catalogues={catalogues}
+          full={embedded}
           onCancel={() => setEditing(null)}
           onSaved={(isNew) => {
             setEditing(null);
@@ -156,10 +157,13 @@ function EducationForm({
   draftKey,
   initial,
   catalogues,
+  full,
   onCancel,
   onSaved,
 }: {
   draftKey: string;
+  /** Show optional details; onboarding keeps them for the profile page. */
+  full: boolean;
   initial: Values;
   catalogues: Pick<Catalogues, "institutions" | "qualificationTypes" | "fieldsOfStudy">;
   onCancel: () => void;
@@ -312,6 +316,8 @@ function EducationForm({
           <Input id="endYear" inputMode="numeric" placeholder="2026" maxLength={4} value={values.endYear} onChange={(e) => set({ endYear: e.target.value })} {...aria("endYear")} />
         </Field>
 
+        {full && (
+          <>
         <Field id="grade" label="Average grade" hint="Optional. In Mozambique grades are usually out of 20." error={err("grade")}>
           <div className="flex gap-2">
             <Input id="grade" inputMode="decimal" placeholder="14.5" value={values.grade} onChange={(e) => set({ grade: e.target.value.replace(",", ".") })} {...aria("grade", true)} />
@@ -327,6 +333,8 @@ function EducationForm({
             {Object.entries(LANGUAGE_LABELS).map(([v, l]) => <option key={v} value={v}>{t(l)}</option>)}
           </Select>
         </Field>
+          </>
+        )}
       </div>
 
       <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
