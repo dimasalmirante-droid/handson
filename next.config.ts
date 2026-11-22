@@ -6,7 +6,8 @@ const isDev = process.env.NODE_ENV === "development";
  * Content Security Policy. Inline scripts are allowed because Next.js needs
  * them without nonces; everything else is limited to this site and Supabase
  * (storage uploads, signed file URLs). Forms may also leave for Supabase and
- * Google during sign-in.
+ * Google during sign-in. The only embedded frames allowed are course videos
+ * from youtube-nocookie.com.
  */
 const csp = [
   "default-src 'self'",
@@ -15,7 +16,8 @@ const csp = [
   "img-src 'self' blob: data: https://*.supabase.co",
   "font-src 'self' data:",
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
-  "frame-src 'none'",
+  // Course videos only: YouTube's privacy-enhanced domain (no cookies until played).
+  "frame-src https://www.youtube-nocookie.com",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self' https://*.supabase.co https://accounts.google.com",

@@ -166,6 +166,7 @@ export async function renderCvPdf(cv: CvData, locale: CvLocale): Promise<Uint8Ar
   for (const [label, entries] of [
     [h.education, cv.education],
     [h.experience, cv.experience],
+    [h.training, cv.training ?? []],
   ] as const) {
     if (entries.length === 0) continue;
     w.heading(label);

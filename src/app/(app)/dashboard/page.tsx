@@ -3,6 +3,8 @@ import { Overview } from "@/components/dashboard/overview";
 import { Alert } from "@/components/ui/feedback";
 import { requireStudent } from "@/lib/auth/session";
 import { getCatalogues } from "@/lib/data/catalogues";
+import { getCatalogue } from "@/lib/data/learning";
+import { suggestedCourse } from "@/lib/learning/model";
 import {
   getCompletion,
   getDocuments,
@@ -21,13 +23,14 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function DashboardOverview({ searchParams }: PageProps<"/dashboard">) {
   const user = await requireStudent("/dashboard");
-  const [profile, completion, education, documents, notifications, catalogues, sp] = await Promise.all([
+  const [profile, completion, education, documents, notifications, catalogues, courses, sp] = await Promise.all([
     getProfile(user.id),
     getCompletion(user.id),
     getEducation(user.id),
     getDocuments(user.id),
     getNotifications(user.id),
     getCatalogues(),
+    getCatalogue(),
     searchParams,
   ]);
   const locale = await getLocale();
@@ -45,6 +48,7 @@ export default async function DashboardOverview({ searchParams }: PageProps<"/da
       catalogues={catalogues}
       notice={typeof sp.notice === "string" ? sp.notice : undefined}
       locale={locale}
+      course={suggestedCourse(courses)}
     />
   );
 }

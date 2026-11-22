@@ -21,13 +21,16 @@ export type CvData = {
   experience: CvEntry[];
   skills: string[];
   languages: string[];
+  /** Handson courses completed (badges). Optional so older callers keep working. */
+  training?: CvEntry[];
 };
 
-export const CV_HEADINGS: Record<CvLocale, Record<"profile" | "education" | "experience" | "skills" | "languages" | "present", string>> = {
+export const CV_HEADINGS: Record<CvLocale, Record<"profile" | "education" | "experience" | "training" | "skills" | "languages" | "present", string>> = {
   pt: {
     profile: "Perfil",
     education: "Formação académica",
     experience: "Experiência",
+    training: "Formação complementar",
     skills: "Competências",
     languages: "Línguas",
     present: "presente",
@@ -36,6 +39,7 @@ export const CV_HEADINGS: Record<CvLocale, Record<"profile" | "education" | "exp
     profile: "Profile",
     education: "Education",
     experience: "Experience",
+    training: "Training",
     skills: "Skills",
     languages: "Languages",
     present: "present",

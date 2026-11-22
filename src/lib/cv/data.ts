@@ -1,6 +1,7 @@
 import "server-only";
 import { countryOptions, splitPhone } from "@/lib/countries";
 import { getCatalogues } from "@/lib/data/catalogues";
+import { getCompletions } from "@/lib/data/learning";
 import { getEducation, getExperiences, getLanguages, getProfile, getSkills } from "@/lib/data/student";
 import { monthYear, period, type CvData, type CvEntry, type CvLocale } from "./model";
 
@@ -57,13 +58,14 @@ function formatPhone(e164: string | null): string | null {
 
 /** Build the CV for the signed-in student from their saved profile. */
 export async function loadCv(userId: string, locale: CvLocale): Promise<CvData | null> {
-  const [profile, education, experiences, skills, languages, catalogues] = await Promise.all([
+  const [profile, education, experiences, skills, languages, catalogues, completions] = await Promise.all([
     getProfile(userId),
     getEducation(userId),
     getExperiences(userId),
     getSkills(userId),
     getLanguages(userId),
     getCatalogues(locale),
+    getCompletions(userId),
   ]);
   if (!profile) return null;
 
@@ -125,5 +127,11 @@ export async function loadCv(userId: string, locale: CvLocale): Promise<CvData |
     experience: experienceEntries,
     skills: skillNames.filter((s) => !s.startsWith(" (")),
     languages: languageNames.filter((s) => !s.startsWith(" (")),
+    training: completions.map((c) => ({
+      title: c.badge_name ?? c.title,
+      subtitle: "Handson",
+      period: monthYear(c.completed_at.slice(0, 10), locale),
+      body: null,
+    })),
   };
 }
