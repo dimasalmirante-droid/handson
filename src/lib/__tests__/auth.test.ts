@@ -44,6 +44,7 @@ describe("registerSchema", () => {
     email: "  Amina@Example.com ",
     password: "segura2026",
     acceptTerms: "on",
+    confirmAge: "on",
   };
 
   it("accepts valid input and normalises email", () => {
@@ -54,6 +55,11 @@ describe("registerSchema", () => {
 
   it("accepts Portuguese names with accents, hyphens and apostrophes", () => {
     expect(registerSchema.safeParse({ ...valid, firstName: "João-Maria", surname: "D'Almeida Simão" }).success).toBe(true);
+  });
+
+  it("requires confirming the minimum age", () => {
+    expect(registerSchema.safeParse({ ...valid, confirmAge: "" }).success).toBe(false);
+    expect(registerSchema.safeParse({ ...valid, confirmAge: undefined }).success).toBe(false);
   });
 
   it("requires accepting the terms", () => {

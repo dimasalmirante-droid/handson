@@ -32,6 +32,7 @@ export const registerSchema = z.object({
   email,
   password,
   acceptTerms: z.literal("on", { error: "You must accept the Terms and Conditions to continue." }),
+  confirmAge: z.literal("on", { error: "Handson is only for people aged 18 or over." }),
 });
 
 export const loginSchema = z.object({

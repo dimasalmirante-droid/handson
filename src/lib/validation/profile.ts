@@ -52,6 +52,17 @@ export function zodFieldErrors(error: z.ZodError): FieldErrors {
 /* ------------------------------------------------------------------ */
 
 export const GENDERS = ["female", "male", "other", "prefer_not_to_say"] as const;
+/** Handson is for adults only (legal decision, November 2026). */
+export const MINIMUM_AGE = 18;
+
+/** Completed years of age on `today` for a "YYYY-MM-DD" date of birth (calendar-exact, no leap-year drift). */
+export function ageOn(dateOfBirth: string, today: Date = new Date()): number {
+  const [y, m, d] = dateOfBirth.split("-").map(Number);
+  let age = today.getFullYear() - y;
+  if (today.getMonth() + 1 < m || (today.getMonth() + 1 === m && today.getDate() < d)) age -= 1;
+  return age;
+}
+
 export const HEADLINE_MAX = 120;
 export const SUMMARY_MAX = 600;
 
@@ -60,10 +71,10 @@ const personalBase = z.object({
   middleName: opt(personName),
   surname: opt(personName),
   dateOfBirth: opt(
-    z.iso.date("Enter a valid date.").refine((d) => {
-      const age = (Date.now() - new Date(d).getTime()) / (365.25 * 24 * 3600 * 1000);
-      return age >= 14 && age <= 86;
-    }, "Check your date of birth."),
+    z.iso
+      .date("Enter a valid date.")
+      .refine((d) => ageOn(d) <= 86, "Check your date of birth.")
+      .refine((d) => ageOn(d) >= MINIMUM_AGE, "You must be 18 or older to use Handson."),
   ),
   gender: opt(z.enum(GENDERS)),
   nationality: opt(z.string().refine(isCountryCode, "Select a country.")),

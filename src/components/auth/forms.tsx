@@ -136,6 +136,7 @@ export function RegisterForm({ termsUrl, privacyUrl, legal, next }: { termsUrl: 
   const [state, action] = useActionState(registerAction, initial);
   const termsError = state.fields?.acceptTerms;
   const privacyError = state.fields?.acknowledgePrivacy;
+  const ageError = state.fields?.confirmAge;
   const t = useT();
   return (
     <form action={action} noValidate className="flex flex-col gap-5">
@@ -152,6 +153,17 @@ export function RegisterForm({ termsUrl, privacyUrl, legal, next }: { termsUrl: 
       <TextField id="password" label="Password" type="password" autoComplete="new-password" required
         minLength={PASSWORD_MIN} hint={t("At least {n} characters, including a letter and a number.", { n: PASSWORD_MIN })}
         error={state.fields?.password} />
+      <div>
+        <Checkbox
+          id="confirmAge"
+          name="confirmAge"
+          required
+          aria-invalid={ageError ? true : undefined}
+          aria-describedby={ageError ? "confirmAge-error" : undefined}
+          label={t("I confirm that I am 18 or older.")}
+        />
+        <FieldError id="confirmAge" message={ageError} />
+      </div>
       {legal ? (
         <div className="flex flex-col gap-3">
           <input type="hidden" name="legalTermsId" value={legal.terms.id} />

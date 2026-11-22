@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { Field, Select, describedBy } from "@/components/ui/field";
 import { LOCALE_TAGS } from "@/i18n/config";
+import { MINIMUM_AGE } from "@/lib/validation/profile";
 import { useLocale, useT } from "@/i18n/client";
 
 /** Oldest and youngest years offered; validation still decides what is accepted. */
-const YOUNGEST = 14;
+const YOUNGEST = MINIMUM_AGE;
 const OLDEST = 70;
 
 const pad = (n: string) => n.padStart(2, "0");

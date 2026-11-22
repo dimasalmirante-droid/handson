@@ -35,7 +35,7 @@ function pick(formData: FormData, keys: string[]) {
 /* ------------------------------------------------------------------ */
 
 export async function registerAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  const raw = pick(formData, ["firstName", "surname", "email", "password", "acceptTerms", "acknowledgePrivacy", "legalTermsId", "legalPrivacyId", "next"]);
+  const raw = pick(formData, ["firstName", "surname", "email", "password", "confirmAge", "acceptTerms", "acknowledgePrivacy", "legalTermsId", "legalPrivacyId", "next"]);
   const parsed = registerSchema.safeParse(raw);
   const values = { firstName: raw.firstName, surname: raw.surname, email: raw.email };
   if (!parsed.success) return { fields: fieldErrors(parsed.error), values };
