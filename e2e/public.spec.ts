@@ -69,6 +69,7 @@ test.describe("registration validation", () => {
     await expect(page.getByText("Enter a valid email address.")).toBeVisible();
     await expect(page.getByText("Use at least 8 characters.")).toBeVisible();
     await expect(page.getByText("You must accept the Terms and Conditions to continue.")).toBeVisible();
+    await expect(page.getByText("Handson is only for people aged 18 or over.").last()).toBeVisible();
     await expect(page.getByLabel("First name")).toHaveValue("Amina");
   });
 

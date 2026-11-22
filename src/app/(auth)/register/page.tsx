@@ -35,6 +35,7 @@ export default async function RegisterPage({ searchParams }: PageProps<"/registe
           ? t("Create an account to accept your employer workspace invitation.")
           : t("Build one professional profile for internships, traineeships and first jobs. Your profile is private by default.")}
       </p>
+      <p className="mt-2 text-sm text-ink-muted">{t("Handson is only for people aged 18 or over.")}</p>
 
       <div className="mt-6 flex flex-col gap-5">
         <GoogleForm label="Continue with Google" intent={invitationJoin ? undefined : "student"} next={nextParam || undefined} />

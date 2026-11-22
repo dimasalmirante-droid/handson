@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { splitPhone, toE164 } from "../countries";
 import {
+  ageOn,
   educationSchema,
   experienceSchema,
   interestsSchema,
@@ -93,6 +94,25 @@ describe("personal information", () => {
 
   it("rejects unrealistic dates of birth", () => {
     expect(personalDraftSchema.safeParse({ dateOfBirth: "2020-01-01" }).success).toBe(false);
+    expect(personalDraftSchema.safeParse({ dateOfBirth: "1900-01-01" }).success).toBe(false);
+  });
+
+  it("requires students to be 18 or older, counted to the day", () => {
+    const today = new Date(2026, 10, 22);
+    expect(ageOn("2008-11-22", today)).toBe(18);
+    expect(ageOn("2008-11-23", today)).toBe(17);
+    expect(ageOn("2000-02-29", new Date(2018, 1, 28))).toBe(17);
+    expect(ageOn("2000-02-29", new Date(2018, 2, 1))).toBe(18);
+
+    const now = new Date();
+    const iso = (years: number, dayShift = 0) => {
+      const d = new Date(now.getFullYear() - years, now.getMonth(), now.getDate() + dayShift);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    };
+    const minor = personalDraftSchema.safeParse({ dateOfBirth: iso(18, 1) });
+    expect(minor.success).toBe(false);
+    if (!minor.success) expect(minor.error.issues[0].message).toBe("You must be 18 or older to use Handson.");
+    expect(personalDraftSchema.safeParse({ dateOfBirth: iso(18) }).success).toBe(true);
   });
 });
 
