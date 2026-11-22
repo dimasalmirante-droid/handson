@@ -30,15 +30,21 @@ const VERIFICATION: Record<string, { tone: "neutral" | "indigo" | "success" | "d
 const dateLabel = (iso: string, locale: Locale) =>
   new Date(iso).toLocaleDateString(LOCALE_TAGS[locale], { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Maputo" });
 
-/** All document types, each with its files and upload / replace / open / remove actions. */
-export function DocumentManager({ documents }: { documents: DocumentRecord[] }) {
+/**
+ * Document types, each with its files and upload / replace / open / remove actions.
+ * `requiredOnly` hides optional types that have no files yet (used during onboarding).
+ */
+export function DocumentManager({ documents, requiredOnly = false }: { documents: DocumentRecord[]; requiredOnly?: boolean }) {
+  const slots = requiredOnly
+    ? SLOTS.filter((s) => s.required || documents.some((d) => d.document_type === s.type))
+    : SLOTS;
   return (
     <div className="flex flex-col gap-3">
       <p className="text-sm text-ink-muted">
         <T>{"Accepted:"}</T>{" "}{formatsLabel("document")}<T>{", up to 10 MB each. Files are stored privately; only you and authorised Handson staff can open them."}</T>
       </p>
       <ul className="flex flex-col gap-3">
-        {SLOTS.map((slot) => (
+        {slots.map((slot) => (
           <DocumentSlot key={slot.type} {...slot} files={documents.filter((d) => d.document_type === slot.type)} />
         ))}
       </ul>

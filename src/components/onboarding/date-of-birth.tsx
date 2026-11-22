@@ -22,7 +22,7 @@ function split(iso: string | undefined): [string, string, string] {
  * which shows month/day/year (US order) on many devices.
  * Calls onChange with "YYYY-MM-DD" once all three are chosen, "" when cleared.
  */
-export function DateOfBirthField({ value, error, onChange }: { value: string | undefined; error?: string; onChange: (iso: string) => void }) {
+export function DateOfBirthField({ value, error, onChange, className }: { value: string | undefined; error?: string; onChange: (iso: string) => void; className?: string }) {
   const t = useT();
   const locale = useLocale();
   const [initialYear, initialMonth, initialDay] = split(value);
@@ -54,7 +54,7 @@ export function DateOfBirthField({ value, error, onChange }: { value: string | u
   const invalid = error ? true : undefined;
 
   return (
-    <Field id="dateOfBirth" label="Date of birth" required error={error} className="sm:col-span-2">
+    <Field id="dateOfBirth" label="Date of birth" required error={error} className={className}>
       <div className="grid grid-cols-[minmax(72px,0.8fr)_minmax(120px,1.5fr)_minmax(88px,1fr)] gap-2" role="group" aria-describedby={describe}>
         <Select id="dateOfBirth" className="pr-8" aria-label={t("Day")} value={day} aria-invalid={invalid} onChange={(e) => update({ day: e.target.value })}>
           <option value="">{t("Day")}</option>

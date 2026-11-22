@@ -1,5 +1,6 @@
 "use client";
 
+import { cn } from "@/lib/cn";
 import { useState, type ReactNode } from "react";
 import { savePersonal } from "@/app/(app)/onboarding/actions";
 import { DateOfBirthField } from "@/components/onboarding/date-of-birth";
@@ -95,13 +96,14 @@ export function PersonalForm({
   return (
     <form noValidate onSubmit={(e) => e.preventDefault()}>
       <div className="mb-8">{photo}</div>
-      <div className="grid gap-x-5 gap-y-6 sm:grid-cols-3">
+      <div className={cn("grid gap-x-5 gap-y-6", embedded ? "sm:grid-cols-3" : "sm:grid-cols-2")}>
         {text("firstName", "First name", { required: true, autoComplete: "given-name" })}
-        {text("middleName", "Middle name", { autoComplete: "additional-name" })}
+        {embedded && text("middleName", "Middle name", { autoComplete: "additional-name" })}
         {text("surname", "Surname", { required: true, autoComplete: "family-name" })}
 
-        <DateOfBirthField value={values.dateOfBirth} error={errors.dateOfBirth} onChange={(iso) => set("dateOfBirth", iso)} />
+        <DateOfBirthField className={embedded ? "sm:col-span-2" : undefined} value={values.dateOfBirth} error={errors.dateOfBirth} onChange={(iso) => set("dateOfBirth", iso)} />
         {countrySelect("nationality", "Nationality")}
+        {embedded && (
         <Field id="gender" label="Gender" hint="Optional" error={errors.gender}>
           <Select id="gender" value={values.gender ?? ""} onChange={(e) => set("gender", e.target.value)} aria-describedby="gender-hint">
             <option value="">{t("Select")}</option>
@@ -110,6 +112,7 @@ export function PersonalForm({
             ))}
           </Select>
         </Field>
+        )}
       </div>
 
       <h2 className="mb-5 mt-10 text-xl"><T>{"Where you live"}</T></h2>
@@ -175,6 +178,7 @@ export function PersonalForm({
             aria-describedby={describedBy("headline", { hint: true, error: errors.headline })}
           />
         </Field>
+        {embedded && (
         <Field
           id="summary"
           label="Short summary"
@@ -192,9 +196,10 @@ export function PersonalForm({
             aria-describedby={describedBy("summary", { hint: true, error: errors.summary })}
           />
         </Field>
+        )}
       </div>
 
-      <h2 className="mb-5 mt-10 text-xl"><T>{"Contact and online profile"}</T></h2>
+      <h2 className="mb-5 mt-10 text-xl"><T>{embedded ? "Contact and online profile" : "Contact"}</T></h2>
       <div className="grid gap-x-5 gap-y-6 sm:grid-cols-2">
         <Field
           id="phoneNumber"
@@ -228,7 +233,7 @@ export function PersonalForm({
             />
           </div>
         </Field>
-        {text("linkedinUrl", "LinkedIn profile", { type: "url", placeholder: "linkedin.com/in/your-name", hint: "Optional" })}
+        {embedded && text("linkedinUrl", "LinkedIn profile", { type: "url", placeholder: "linkedin.com/in/your-name", hint: "Optional" })}
       </div>
 
       {embedded ? (

@@ -109,6 +109,7 @@ export function InterestsStep({
         onChange={(jobFunctionIds) => update({ jobFunctionIds })}
       />
 
+      {embedded && (
       <div>
         <Field id="role" label="Preferred internship or entry-level roles" hint="For example: Audit trainee, Junior developer, HR intern. Up to 5.">
           <div className="flex gap-2">
@@ -147,6 +148,7 @@ export function InterestsStep({
           </ul>
         )}
       </div>
+      )}
 
       <ChipGroup
         legend="Where you would like to work"
@@ -181,6 +183,7 @@ export function InterestsStep({
         )}
       </div>
 
+      {embedded && (
       <RadioCards
         legend="Preferred internship duration"
         name="duration"
@@ -188,7 +191,9 @@ export function InterestsStep({
         value={v.internshipDuration}
         onChange={(internshipDuration) => update({ internshipDuration })}
       />
+      )}
 
+      {embedded && (
       <div className="grid gap-8 sm:grid-cols-2">
         <RadioCards
           legend="Do you have previous work experience?"
@@ -205,7 +210,9 @@ export function InterestsStep({
           onChange={(x) => update({ willingToRelocate: x === "yes" })}
         />
       </div>
+      )}
 
+      {embedded && (
       <Field id="careerInterests" label="Career interests" hint="Optional. In a few sentences, what kind of career are you working towards?" error={fieldErrors.careerInterests}>
         <Textarea
           id="careerInterests"
@@ -216,6 +223,7 @@ export function InterestsStep({
           aria-describedby="careerInterests-hint"
         />
       </Field>
+      )}
 
       {embedded ? (
 
