@@ -54,21 +54,21 @@ export function DateOfBirthField({ value, error, onChange }: { value: string | u
   const invalid = error ? true : undefined;
 
   return (
-    <Field id="dateOfBirth" label="Date of birth" required error={error}>
-      <div className="grid grid-cols-[0.8fr_1.4fr_1fr] gap-2" role="group" aria-describedby={describe}>
-        <Select id="dateOfBirth" aria-label={t("Day")} value={day} aria-invalid={invalid} onChange={(e) => update({ day: e.target.value })}>
+    <Field id="dateOfBirth" label="Date of birth" required error={error} className="sm:col-span-2">
+      <div className="grid grid-cols-[minmax(72px,0.8fr)_minmax(120px,1.5fr)_minmax(88px,1fr)] gap-2" role="group" aria-describedby={describe}>
+        <Select id="dateOfBirth" className="pr-8" aria-label={t("Day")} value={day} aria-invalid={invalid} onChange={(e) => update({ day: e.target.value })}>
           <option value="">{t("Day")}</option>
           {Array.from({ length: daysInMonth }, (_, i) => String(i + 1)).map((d) => (
             <option key={d} value={d}>{d}</option>
           ))}
         </Select>
-        <Select aria-label={t("Month")} value={month} aria-invalid={invalid} onChange={(e) => update({ month: e.target.value })}>
+        <Select className="pr-8" aria-label={t("Month")} value={month} aria-invalid={invalid} onChange={(e) => update({ month: e.target.value })}>
           <option value="">{t("Month")}</option>
           {months.map((m) => (
             <option key={m.value} value={m.value}>{m.label}</option>
           ))}
         </Select>
-        <Select aria-label={t("Year")} value={year} aria-invalid={invalid} onChange={(e) => update({ year: e.target.value })}>
+        <Select className="pr-8" aria-label={t("Year")} value={year} aria-invalid={invalid} onChange={(e) => update({ year: e.target.value })}>
           <option value="">{t("Year")}</option>
           {year && !years.includes(year) && <option value={year}>{year}</option>}
           {years.map((y) => (

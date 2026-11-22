@@ -40,7 +40,7 @@ export function LanguagesSection({ mine, languages }: { mine: StudentLanguage[];
       <p className="mt-1 text-[15px] text-ink-muted"><T>{"Include Portuguese, English and any national languages you speak."}</T></p>
       {error && <Alert tone="danger" className="mt-4">{error}</Alert>}
 
-      <div className="mt-5 grid items-end gap-4 sm:grid-cols-[1fr_200px_auto]">
+      <div className="mt-5 grid items-end gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,180px)] lg:grid-cols-[minmax(0,1fr)_180px_auto]">
         <Field id="language-id" label="Language">
           <Select id="language-id" value={languageId} onChange={(e) => setLanguageId(e.target.value)}>
             <option value="">{t("Select a language")}</option>

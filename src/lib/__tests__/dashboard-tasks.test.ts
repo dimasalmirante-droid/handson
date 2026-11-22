@@ -35,7 +35,7 @@ describe("dashboard next step", () => {
   it("groups several missing fields of a section into one task", () => {
     const tasks = openTasks({ headline: "x" }, completion({ personal: ["phone", "nationality", "province"] }));
     expect(tasks).toHaveLength(1);
-    expect(tasks[0]).toMatchObject({ key: "personal", href: "/dashboard/profile" });
+    expect(tasks[0]).toMatchObject({ key: "personal", href: "/dashboard/profile?edit=about" });
   });
 
   it("copes with a missing completion result", () => {
@@ -45,8 +45,8 @@ describe("dashboard next step", () => {
 
 describe("where to review changes", () => {
   it("points to the first item Handson could not verify", () => {
-    expect(changesHref([{ verification_status: "rejected" }], [])).toBe("/dashboard/education");
-    expect(changesHref([{ verification_status: "verified" }], [{ verification_status: "rejected" }])).toBe("/dashboard/documents");
+    expect(changesHref([{ verification_status: "rejected" }], [])).toBe("/dashboard/profile?edit=education");
+    expect(changesHref([{ verification_status: "verified" }], [{ verification_status: "rejected" }])).toBe("/dashboard/profile?edit=documents");
     expect(changesHref([], [])).toBe("/dashboard/profile");
   });
 });
