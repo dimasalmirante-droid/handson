@@ -101,6 +101,7 @@ export function PersonalForm({
         {text("surname", "Surname", { required: true, autoComplete: "family-name" })}
 
         <DateOfBirthField value={values.dateOfBirth} error={errors.dateOfBirth} onChange={(iso) => set("dateOfBirth", iso)} />
+        {countrySelect("nationality", "Nationality")}
         <Field id="gender" label="Gender" hint="Optional" error={errors.gender}>
           <Select id="gender" value={values.gender ?? ""} onChange={(e) => set("gender", e.target.value)} aria-describedby="gender-hint">
             <option value="">{t("Select")}</option>
@@ -109,7 +110,6 @@ export function PersonalForm({
             ))}
           </Select>
         </Field>
-        {countrySelect("nationality", "Nationality")}
       </div>
 
       <h2 className="mb-5 mt-10 text-xl"><T>{"Where you live"}</T></h2>

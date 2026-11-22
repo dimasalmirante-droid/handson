@@ -42,8 +42,13 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("My profile") };
 }
 
-const monthYear = (d: string | null, locale: Locale) =>
-  d ? new Date(`${d}T00:00:00`).toLocaleDateString(LOCALE_TAGS[locale], { month: "short", year: "numeric" }) : "";
+/** "Jan 2026" / "jan 2026". Month and year are formatted separately because some locales (pt-MZ) render month+year numerically. */
+const monthYear = (d: string | null, locale: Locale) => {
+  if (!d) return "";
+  const date = new Date(`${d}T00:00:00`);
+  const month = date.toLocaleDateString(LOCALE_TAGS[locale], { month: "short" }).replace(".", "");
+  return `${month} ${date.getFullYear()}`;
+};
 
 /** One section of the read view: a heading, an Edit link, and either content or an invitation. */
 function Section({
@@ -248,7 +253,7 @@ export default async function ProfilePage({ searchParams }: PageProps<"/dashboar
         </div>
         {profile?.summary && <p className="mt-5 whitespace-pre-line border-t border-line pt-4 text-[15px]">{profile.summary}</p>}
         <dl className="mt-4 divide-y divide-line border-t border-line">
-          <Row label={t("Phone number")}>{profile?.phone ? `${phone.dial} ${phone.national}` : ""}</Row>
+          <Row label={t("Phone number")}>{profile?.phone ? `${phone.dial} ${phone.national.replace(/^(\d{2})(\d{3})(\d{4})$/, "$1 $2 $3")}` : ""}</Row>
           <Row label={t("Email address")}>{profile?.email}</Row>
           <Row label={t("Date of birth")}>{dob}</Row>
           <Row label={t("Nationality")}>{countryName(profile?.nationality_code ?? null)}</Row>

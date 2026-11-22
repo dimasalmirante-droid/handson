@@ -61,7 +61,7 @@ export function EditPanel({
         role="dialog"
         aria-modal="true"
         aria-labelledby="edit-panel-title"
-        className="fixed inset-y-0 right-0 z-50 flex w-full flex-col bg-surface-raised shadow-xl sm:w-[min(640px,100vw)] sm:rounded-l-[var(--radius-lg)]"
+        className="fixed inset-y-0 right-0 z-50 flex w-full flex-col bg-surface-raised shadow-xl sm:w-[min(720px,100vw)] sm:rounded-l-[var(--radius-lg)]"
       >
         <header className="flex items-center justify-between gap-4 border-b border-line px-5 py-4 sm:px-6">
           <h2 id="edit-panel-title" ref={headingRef} tabIndex={-1} className="text-lg outline-none">
