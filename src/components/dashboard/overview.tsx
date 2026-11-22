@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ButtonLink } from "@/components/ui/button";
 import { Alert } from "@/components/ui/feedback";
 import type { Catalogues } from "@/lib/data/catalogues";
+import type { CatalogueCourse } from "@/lib/learning/model";
 import type { Completion, DocumentRecord, EducationRecord, Notification, StudentProfile } from "@/lib/data/student";
 import { changesHref, openTasks } from "@/lib/dashboard/tasks";
 import { T } from "@/i18n/client";
@@ -20,10 +21,12 @@ export type OverviewProps = {
   catalogues: Catalogues;
   notice?: string;
   locale: Locale;
+  /** The course to suggest first (in progress, or the first free one not yet completed). */
+  course?: CatalogueCourse | null;
 };
 
 /** Dashboard home: one next step, the completion, the verification status, and the rest of the to-do list. */
-export function Overview({ profile, photoUrl, completion, education, documents, notifications, catalogues, notice, locale }: OverviewProps) {
+export function Overview({ profile, photoUrl, completion, education, documents, notifications, catalogues, notice, locale, course }: OverviewProps) {
   const initials = `${profile.first_name?.[0] ?? ""}${profile.surname?.[0] ?? ""}`.toUpperCase() || "?";
   const total = completion?.total ?? 0;
   const tasks = openTasks(profile, completion);
@@ -66,6 +69,8 @@ export function Overview({ profile, photoUrl, completion, education, documents, 
           {studying && <p className="truncate text-[15px] text-ink-muted">{studying}</p>}
         </div>
       </header>
+
+      {course && <LearningCard course={course} />}
 
       <section aria-labelledby="next-step" className="rounded-[var(--radius-lg)] border border-line bg-surface-raised p-5 sm:p-6">
         <div className="flex items-baseline justify-between gap-4">
@@ -176,4 +181,28 @@ function VerificationLine({ status, href }: { status: string; href: string }) {
     );
   }
   return null;
+}
+
+/** The suggested course: the first call to action on the home page. */
+function LearningCard({ course }: { course: CatalogueCourse }) {
+  const started = course.lessons_completed > 0;
+  const pct = course.lessons_total ? Math.round((100 * course.lessons_completed) / course.lessons_total) : 0;
+  return (
+    <section aria-labelledby="learning-next" className="rounded-[var(--radius-lg)] bg-ink p-5 text-white sm:p-6">
+      <p className="text-sm font-semibold text-lime"><T>{started ? "Continue learning" : "Recommended course"}</T></p>
+      <h2 id="learning-next" className="mt-2 text-xl text-white">{course.title}</h2>
+      {course.summary && !started && <p className="mt-1 max-w-xl text-[15px] text-white/75">{course.summary}</p>}
+      {started && (
+        <div className="mt-3 max-w-sm">
+          <div className="h-1.5 overflow-hidden rounded-full bg-white/20" aria-hidden>
+            <div className="h-full rounded-full bg-lime" style={{ width: `${pct}%` }} />
+          </div>
+          <p className="mt-1.5 text-sm text-white/75">{pct}% <T>{"complete"}</T></p>
+        </div>
+      )}
+      <ButtonLink href={`/dashboard/learning/${course.slug}`} className="mt-5 bg-lime text-ink hover:bg-white">
+        <T>{started ? "Continue" : "Start the course"}</T>
+      </ButtonLink>
+    </section>
+  );
 }

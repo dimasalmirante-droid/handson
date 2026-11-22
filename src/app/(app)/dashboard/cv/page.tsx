@@ -102,6 +102,12 @@ export default async function CvPage() {
               <Entries items={cv.experience} />
             </section>
           )}
+          {cv.training && cv.training.length > 0 && (
+            <section>
+              <h3 className="mb-2 text-sm font-semibold uppercase tracking-[0.08em] text-indigo">{h.training}</h3>
+              <Entries items={cv.training} />
+            </section>
+          )}
           {cv.skills.length > 0 && (
             <section>
               <h3 className="mb-2 text-sm font-semibold uppercase tracking-[0.08em] text-indigo">{h.skills}</h3>

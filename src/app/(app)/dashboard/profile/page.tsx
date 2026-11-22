@@ -15,6 +15,7 @@ import { getLocale, getT } from "@/i18n/server";
 import type { TFunction } from "@/i18n/translate";
 import { requireStudent } from "@/lib/auth/session";
 import { countryOptions, splitPhone } from "@/lib/countries";
+import { getCompletions } from "@/lib/data/learning";
 import { getCatalogues } from "@/lib/data/catalogues";
 import {
   getDocuments,
@@ -114,7 +115,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 
 export default async function ProfilePage({ searchParams }: PageProps<"/dashboard/profile">) {
   const user = await requireStudent("/dashboard/profile");
-  const [profile, education, experiences, skills, languages, interests, documents, catalogues, sp, locale, t] = await Promise.all([
+  const [profile, education, experiences, skills, languages, interests, documents, catalogues, sp, locale, t, completions] = await Promise.all([
     getProfile(user.id),
     getEducation(user.id),
     getExperiences(user.id),
@@ -126,6 +127,7 @@ export default async function ProfilePage({ searchParams }: PageProps<"/dashboar
     searchParams,
     getLocale(),
     getT(),
+    getCompletions(user.id),
   ]);
   const photoUrl = await getPhotoUrl(profile?.photo_path ?? null);
   const initials = `${profile?.first_name?.[0] ?? ""}${profile?.surname?.[0] ?? ""}`.toUpperCase() || "?";
@@ -385,6 +387,30 @@ export default async function ProfilePage({ searchParams }: PageProps<"/dashboar
           </Row>
         </dl>
       </Section>
+
+      <section aria-labelledby="badges-title" className="rounded-[var(--radius-lg)] border border-line bg-surface-raised p-5 sm:p-6">
+        <div className="flex items-baseline justify-between gap-4">
+          <h2 id="badges-title" className="text-lg">{t("Handson courses")}</h2>
+          <Link href="/dashboard/learning" className="text-sm font-semibold text-indigo hover:underline">{t("Learning")}</Link>
+        </div>
+        {completions.length > 0 ? (
+          <ul className="mt-3 flex flex-wrap gap-2">
+            {completions.map((c) => (
+              <li key={c.course_id}>
+                <span className="inline-flex items-center gap-2 rounded-[var(--radius-pill)] bg-lime px-3 py-1.5 text-sm font-semibold text-ink">
+                  ★ {c.badge_name ?? c.title}
+                  <span className="font-normal">· {monthYear(c.completed_at.slice(0, 10), locale)}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-2 text-[15px] text-ink-muted">
+            {t("Complete a course to add a badge here and to your CV.")}{" "}
+            <Link href="/dashboard/learning" className="font-semibold text-indigo hover:underline">{t("See courses")}</Link>
+          </p>
+        )}
+      </section>
 
       {editing && (
         <EditPanel title={PROFILE_SECTIONS[editing].title} closeHref={`/dashboard/profile#${editing}`} footer={editing !== "about"}>

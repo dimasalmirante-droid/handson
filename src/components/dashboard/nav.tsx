@@ -8,6 +8,7 @@ import { useT } from "@/i18n/client";
 export const DASHBOARD_NAV = [
   { href: "/dashboard", label: "Home" },
   { href: "/dashboard/profile", label: "My profile" },
+  { href: "/dashboard/learning", label: "Learning" },
   { href: "/dashboard/cv", label: "My CV" },
   { href: "/dashboard/settings", label: "Settings" },
 ] as const;

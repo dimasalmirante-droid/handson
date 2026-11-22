@@ -123,6 +123,19 @@ test.describe("student journey", () => {
     await expect(panel.getByLabel("Short summary")).toBeVisible();
   });
 
+  test("learning page lists courses or explains they are coming @mobile", async ({ page }) => {
+    await logIn(page, student);
+    await page.goto("/dashboard");
+    await page.getByRole("link", { name: "Learning" }).first().click();
+    await expect(page).toHaveURL(/\/dashboard\/learning$/);
+    await expect(page.getByRole("heading", { name: "Learning", level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Have an access code?" })).toBeVisible();
+    await expectNoHorizontalScroll(page);
+
+    const res = await page.goto("/dashboard/learning/curso-que-nao-existe");
+    expect(res?.status()).toBe(404);
+  });
+
   test("students cannot open the admin portal", async ({ page }) => {
     await logIn(page, student);
     const res = await page.goto("/admin");

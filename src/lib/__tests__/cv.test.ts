@@ -48,6 +48,11 @@ describe("CV PDF", () => {
     expect(doc.getTitle()).toBe("CV – Amina Macuácua");
   });
 
+  it("renders completed Handson courses as training", async () => {
+    const withTraining = { ...sample, training: [{ title: "Preparação para o Trabalho", subtitle: "Handson", period: "nov 2026", body: null }] };
+    await expect(renderCvPdf(withTraining, "pt")).resolves.toBeInstanceOf(Uint8Array);
+  });
+
   it("replaces characters the font cannot draw instead of failing", async () => {
     const doc = await PDFDocument.create();
     const font = await doc.embedFont(StandardFonts.Helvetica);
