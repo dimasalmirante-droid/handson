@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseBlocks } from "../../components/learning/lesson-body";
 import { nextLesson, suggestedCourse, type CatalogueCourse, type CourseOutline } from "../learning/model";
+import { quizLayout } from "../learning/shuffle";
 import { youtubeEmbedUrl, youtubeId } from "../learning/youtube";
 
 describe("youtube links", () => {
@@ -79,5 +80,21 @@ describe("next lesson", () => {
   it("is null when every open lesson is done", () => {
     const o = outline([{ id: "m1", position: 1, title: "M1", objective: null, open: true, lessons: [lesson("a", true)] }]);
     expect(nextLesson(o)).toBeNull();
+  });
+});
+
+describe("quiz shuffling", () => {
+  it("is a valid permutation and the same for the same seed and attempt", () => {
+    const a = quizLayout([4, 4, 3, 4], 12345, 0);
+    expect([...a.questions].sort()).toEqual([0, 1, 2, 3]);
+    expect([...a.options[2]].sort()).toEqual([0, 1, 2]);
+    expect(quizLayout([4, 4, 3, 4], 12345, 0)).toEqual(a);
+  });
+
+  it("changes the order on a new attempt", () => {
+    const counts = [4, 4, 4, 4, 4, 4, 4, 4];
+    const first = quizLayout(counts, 999, 0);
+    const second = quizLayout(counts, 999, 1);
+    expect(JSON.stringify(second)).not.toBe(JSON.stringify(first));
   });
 });

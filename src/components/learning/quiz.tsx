@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { submitQuiz, type QuizResult } from "@/app/(app)/dashboard/learning/actions";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/feedback";
 import { cn } from "@/lib/cn";
 import type { QuizQuestion } from "@/lib/learning/model";
+import { quizLayout } from "@/lib/learning/shuffle";
 import { T, useT } from "@/i18n/client";
 
 /** A quiz graded on the server. Shows which answers were right only after submitting. */
@@ -17,6 +18,7 @@ export function Quiz({
   passMark,
   bestScore,
   nextHref,
+  seed,
 }: {
   lessonId: string;
   courseSlug: string;
@@ -24,10 +26,15 @@ export function Quiz({
   passMark: number;
   bestScore: number | null;
   nextHref: string;
+  /** Chosen by the server per page load; each retry shuffles again from it. */
+  seed: number;
 }) {
   const t = useT();
   const router = useRouter();
+  // answers[q] = original option index chosen for original question q.
   const [answers, setAnswers] = useState<(number | null)[]>(() => questions.map(() => null));
+  const [attempt, setAttempt] = useState(0);
+  const layout = useMemo(() => quizLayout(questions.map((q) => q.options.length), seed, attempt), [questions, seed, attempt]);
   const [result, setResult] = useState<QuizResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -51,7 +58,10 @@ export function Quiz({
 
   const retry = () => {
     setResult(null);
+    setError(null);
     setAnswers(questions.map(() => null));
+    setAttempt((a) => a + 1);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
@@ -62,18 +72,21 @@ export function Quiz({
       </p>
 
       <ol className="flex flex-col gap-6">
-        {questions.map((q, qi) => {
+        {layout.questions.map((qi, shown) => {
+          const q = questions[qi];
           const outcome = result?.questions[qi];
           return (
-            <li key={q.id}>
+            <li key={`${attempt}-${q.id}`}>
               <fieldset disabled={!!result || pending}>
                 <legend className="mb-3 font-semibold">
-                  {qi + 1}. {q.prompt}
+                  {shown + 1}. {q.prompt}
                 </legend>
                 <div className="flex flex-col gap-2">
-                  {q.options.map((opt, oi) => {
+                  {layout.options[qi].map((oi) => {
+                    const opt = q.options[oi];
                     const chosen = answers[qi] === oi;
-                    const isCorrect = outcome && outcome.correct_index === oi;
+                    // The right answer is revealed only after passing; a failed attempt shows only what was wrong.
+                    const isCorrect = outcome && (result?.passed ? outcome.correct_index === oi : chosen && outcome.correct);
                     const isWrongChoice = outcome && chosen && !outcome.correct;
                     return (
                       <label
@@ -99,7 +112,7 @@ export function Quiz({
                 </div>
                 {outcome && (
                   <p className={cn("mt-2 text-sm", outcome.correct ? "text-success" : "text-danger")}>
-                    {outcome.correct ? t("Correct.") : t("Not quite.")} {outcome.explanation}
+                    {outcome.correct ? t("Correct.") : t("Not quite.")} {result?.passed ? outcome.explanation : null}
                   </p>
                 )}
               </fieldset>
@@ -114,6 +127,7 @@ export function Quiz({
         <div className="flex flex-col gap-4">
           <Alert tone={result.passed ? "success" : "warning"} title={result.passed ? t("You passed") : t("Not yet")}>
             {t("You scored {score}%. The pass mark is {mark}%.", { score: result.score, mark: result.pass_mark })}
+            {!result.passed && ` ${t("Review the lessons and try again: the questions and options will appear in a new order.")}`}
             {result.course_completed && ` ${t("You have completed the course and earned the badge.")}`}
           </Alert>
           <div className="flex flex-wrap gap-3">
