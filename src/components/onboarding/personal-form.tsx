@@ -1,5 +1,6 @@
 "use client";
 
+import { mergeFieldErrors } from "@/lib/forms/errors";
 import { cn } from "@/lib/cn";
 import { useState, type ReactNode } from "react";
 import { savePersonal } from "@/app/(app)/onboarding/actions";
@@ -50,7 +51,7 @@ export function PersonalForm({
   };
 
   // Show format errors from the latest autosave.
-  const errors: FieldErrors = { ...(autosave.result?.ok === false ? autosave.result.fields : {}), ...fields };
+  const errors: FieldErrors = mergeFieldErrors(autosave.result?.ok === false ? autosave.result.fields : undefined, fields);
 
   const text = (id: string, label: string, opts: { required?: boolean; type?: string; autoComplete?: string; hint?: string; placeholder?: string } = {}) => (
     <Field id={id} label={label} required={opts.required} hint={opts.hint} error={errors[id]}>

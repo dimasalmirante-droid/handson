@@ -33,7 +33,9 @@ export default defineConfig({
       ],
       origins: [],
     },
-    trace: "retain-on-failure",
+    // Traces record every value typed, including test-account passwords, and CI
+    // uploads failure reports as downloadable artifacts. Keep traces local only.
+    trace: process.env.CI ? "off" : "retain-on-failure",
     screenshot: "only-on-failure",
   },
   projects: [

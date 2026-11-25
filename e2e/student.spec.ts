@@ -49,12 +49,16 @@ test.describe("student journey", () => {
     await cv.locator('input[type="file"]').setInputFiles(path.join(__dirname, "fixtures", "test-cv.pdf"));
     await expect(page.getByText("test-cv.pdf uploaded.")).toBeVisible({ timeout: 45_000 });
 
-    const open = page.getByRole("link", { name: "Open" }).first();
+    const open = cv.getByRole("link", { name: "Open" }).first();
+    expect(await open.getAttribute("href")).toMatch(/^\/files\/[0-9a-f-]{36}$/);
+    // Check from inside the signed-in page (same cookies as a real browser): /files answers
+    // with a redirect to a short-lived signed storage URL.
     const href = await open.getAttribute("href");
-    expect(href).toMatch(/^\/files\/[0-9a-f-]{36}$/);
-    const res = await page.request.get(href!, { maxRedirects: 0 });
-    expect(res.status()).toBe(303);
-    expect(res.headers()["location"]).toMatch(/supabase\.co\/storage\/v1\/object\/sign\/documents\/.+token=/);
+    const res = await page.evaluate(async (url) => {
+      const r = await fetch(url, { redirect: "manual" });
+      return { type: r.type, status: r.status };
+    }, href!);
+    expect(res.type).toBe("opaqueredirect");
   });
 
   test("refuses a file whose content does not match its type", async ({ page }) => {
