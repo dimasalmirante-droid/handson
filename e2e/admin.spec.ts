@@ -15,12 +15,31 @@ test.describe("admin journey", () => {
     await logIn(page, admin);
     await page.goto("/admin/learning");
     await expect(page.getByRole("heading", { name: "Learning", level: 1 })).toBeVisible();
-    const pilot = page.getByRole("link", { name: "Preparação para o Trabalho (piloto)" });
+    const pilot = page.getByRole("link", { name: "Preparação para o Trabalho (piloto)", exact: true });
     await expect(pilot).toBeVisible();
     await pilot.click();
     await expect(page).toHaveURL(/\/admin\/learning\/[0-9a-f-]{36}/);
     await expect(page.getByRole("heading", { name: "Where students stop" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Quiz: Caso prático: Amina e Délcio" })).toBeVisible();
+  });
+
+  test("course editor opens the pilot and suggests an address for a new course", async ({ page }) => {
+    await logIn(page, admin);
+    await page.goto("/admin/learning");
+    await page.getByRole("link", { name: "Edit Preparação para o Trabalho (piloto)" }).click();
+    await expect(page).toHaveURL(/\/admin\/learning\/[0-9a-f-]{36}\/edit$/);
+    await expect(page.getByRole("heading", { name: "Modules and lessons" })).toBeVisible();
+    await expect(page.getByLabel("Address")).toHaveValue("preparacao-para-o-trabalho-piloto");
+    await expect(page.getByRole("cell", { name: "PILOTO-HANDSON" })).toBeVisible();
+
+    // Opening a lesson shows the quiz editor with the pilot's questions. Nothing is saved.
+    await page.getByRole("link", { name: /Caso prático/ }).click();
+    await expect(page.getByRole("heading", { name: "Questions" })).toBeVisible();
+    await expect(page.getByText("Question 8", { exact: true })).toBeVisible();
+
+    await page.goto("/admin/learning/new");
+    await page.getByLabel("Title").fill("Comunicação no Trabalho");
+    await expect(page.getByLabel("Address")).toHaveValue("comunicacao-no-trabalho");
   });
 
   test("employer slug is suggested and a manual edit is preserved", async ({ page }) => {

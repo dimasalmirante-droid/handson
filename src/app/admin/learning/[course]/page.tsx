@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader, Panel } from "@/components/dashboard/page-header";
 import { Alert } from "@/components/ui/feedback";
-import { requireAdmin } from "@/lib/auth/admin";
+import { requireAdmin, roleAtLeast } from "@/lib/auth/admin";
 import { cn } from "@/lib/cn";
 import { createClient } from "@/lib/supabase/server";
 
@@ -40,7 +40,7 @@ function Bar({ value, tone = "indigo" }: { value: number; tone?: "indigo" | "dan
 }
 
 export default async function CourseResultsPage({ params }: PageProps<"/admin/learning/[course]">) {
-  await requireAdmin("reviewer");
+  const { role } = await requireAdmin("reviewer");
   const { course } = await params;
   if (!UUID.test(course)) notFound();
   const supabase = await createClient();
@@ -53,7 +53,10 @@ export default async function CourseResultsPage({ params }: PageProps<"/admin/le
 
   return (
     <div className="flex flex-col gap-6">
-      <Link href="/admin/learning" className="text-sm font-semibold text-indigo hover:underline">← All courses</Link>
+      <div className="flex flex-wrap gap-4 text-sm font-semibold">
+        <Link href="/admin/learning" className="text-indigo hover:underline">← All courses</Link>
+        {roleAtLeast(role, "admin") && <Link href={`/admin/learning/${course}/edit`} className="text-indigo hover:underline">Edit course</Link>}
+      </div>
       <PageHeader
         title={r.title}
         lead={`${r.started} started · ${r.completed} completed${r.started ? ` (${Math.round((100 * r.completed) / r.started)}%)` : ""} · pass mark ${r.pass_mark}%`}

@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { Badge, EmptyState } from "@/components/ui/feedback";
-import { requireAdmin } from "@/lib/auth/admin";
+import { ButtonLink } from "@/components/ui/button";
+import { Alert, Badge, EmptyState } from "@/components/ui/feedback";
+import { requireAdmin, roleAtLeast } from "@/lib/auth/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Learning" };
@@ -22,8 +23,10 @@ type Row = {
 
 const pct = (part: number, whole: number) => (whole ? `${Math.round((100 * part) / whole)}%` : "–");
 
-export default async function AdminLearningPage() {
-  await requireAdmin("reviewer");
+export default async function AdminLearningPage({ searchParams }: PageProps<"/admin/learning">) {
+  const { role } = await requireAdmin("reviewer");
+  const canEdit = roleAtLeast(role, "admin");
+  const { notice } = await searchParams;
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("admin_learning_overview");
   if (error) console.error("admin_learning_overview failed", error.code, error.message);
@@ -31,7 +34,12 @@ export default async function AdminLearningPage() {
 
   return (
     <>
-      <PageHeader title="Learning" lead="How students are getting on with each course. Figures are totals; no student is named." />
+      <PageHeader
+        title="Learning"
+        lead="How students are getting on with each course. Figures are totals; no student is named."
+        action={canEdit ? <ButtonLink href="/admin/learning/new">New course</ButtonLink> : undefined}
+      />
+      {notice === "deleted" && <Alert tone="success" className="mb-4">Course deleted.</Alert>}
       {rows.length === 0 ? (
         <EmptyState title="No courses yet" />
       ) : (
@@ -53,6 +61,11 @@ export default async function AdminLearningPage() {
                 <tr key={r.course_id} className="border-b border-line last:border-0">
                   <td className="px-4 py-3">
                     <Link href={`/admin/learning/${r.course_id}`} className="font-semibold text-indigo hover:underline">{r.title}</Link>
+                    {canEdit && (
+                      <Link href={`/admin/learning/${r.course_id}/edit`} className="ml-3 text-sm font-semibold text-indigo hover:underline">
+                        Edit<span className="sr-only"> {r.title}</span>
+                      </Link>
+                    )}
                     <p className="text-sm text-ink-muted">
                       {r.audience === "restricted" ? "Restricted (code or grant)" : "All students"}
                       {r.price_mzn > 0 ? ` · ${r.price_mzn.toLocaleString("en")} MZN` : " · Free"}

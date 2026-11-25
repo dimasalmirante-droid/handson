@@ -16,7 +16,7 @@ const out = new Map<string, string>();
 /** Not words to translate: brand names, file formats, CSS classes, addresses. */
 const NOT_TEXT = new Set(["LinkedIn", "GitHub", "PDF", "PNG", "JPG", "WebP", "Word (.doc)", "Word (.docx)", "hello@handson.cloud", "bg-success-soft text-success"]);
 
-const SKIP = [/\.test\.tsx?$/, /\/admin\//, /\/employer\//, /design-system/, /__tests__/, /\/i18n\//, /\/components\/admin\//, /\/lib\/data\/admin/, /\/lib\/cv\/data/, /\/lib\/cv\/model/, /\/lib\/cv\/pdf/, /\/supabase\//, /proxy\.ts$/, /\/lib\/env/, /\/lib\/site/, /\/lib\/countries/, /oauth/, /\/lib\/invitations\//, /\/lib\/companies\//, /\/lib\/csv/, /\/lib\/cn/];
+const SKIP = [/\.test\.tsx?$/, /\/admin\//, /\/employer\//, /design-system/, /__tests__/, /\/i18n\//, /\/components\/admin\//, /\/lib\/data\/admin/, /\/lib\/cv\/data/, /\/lib\/cv\/model/, /\/lib\/cv\/pdf/, /\/supabase\//, /proxy\.ts$/, /\/lib\/env/, /\/lib\/site/, /\/lib\/countries/, /oauth/, /\/lib\/invitations\//, /\/lib\/companies\//, /\/lib\/learning\/editor\.ts$/, /\/lib\/csv/, /\/lib\/cn/];
 const PROPS = new Set(["label", "title", "lead", "hint", "legend", "continueLabel", "createLabel", "note", "detail", "message", "error", "success", "placeholder"]);
 const MESSAGE_FILES = [/validation\//, /actions\.ts$/, /lib\/files\.ts$/, /use-upload\.ts$/, /labels\.ts$/, /data\/student\.ts$/, /auth\/destination\.ts$/, /lib\/legal\.ts$/, /onboarding\/steps\.ts$/, /app\/\(auth\)\/login\/page\.tsx$/];
 
