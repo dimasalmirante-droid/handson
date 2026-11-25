@@ -37,6 +37,7 @@ export type PublicProfile = {
   }[];
   skills?: { name_en: string; name_pt: string; proficiency: string }[];
   languages?: { name_en: string; name_pt: string; level: string }[];
+  courses?: { title: string; badge_name: string | null; completed_at: string }[];
 };
 
 const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;

@@ -19,9 +19,10 @@ const SECTION_LABELS: Record<PublicSection, string> = {
   skills: "Skills",
   languages: "Languages",
   linkedin: "LinkedIn link",
+  courses: "Handson courses completed",
 };
 
-const DEFAULT_SECTIONS: PublicSection[] = ["photo", "headline", "summary", "location", "education", "experience", "skills", "languages"];
+const DEFAULT_SECTIONS: PublicSection[] = ["photo", "headline", "summary", "location", "education", "experience", "skills", "languages", "courses"];
 
 /**
  * Opt-in public profile: an address the student can share (WhatsApp,

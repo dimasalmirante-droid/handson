@@ -136,7 +136,7 @@ export type PersonalInput = z.infer<typeof personalDraftSchema>;
 /* Public profile                                                      */
 /* ------------------------------------------------------------------ */
 
-export const PUBLIC_SECTIONS = ["photo", "headline", "summary", "location", "education", "experience", "skills", "languages", "linkedin"] as const;
+export const PUBLIC_SECTIONS = ["photo", "headline", "summary", "location", "education", "experience", "skills", "languages", "linkedin", "courses"] as const;
 export type PublicSection = (typeof PUBLIC_SECTIONS)[number];
 
 /** Must match the reserved list in set_public_profile(). */
