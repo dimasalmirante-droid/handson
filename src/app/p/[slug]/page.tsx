@@ -153,6 +153,20 @@ export default async function PublicProfilePage({ params }: PageProps<"/p/[slug]
         </section>
       )}
 
+      {p.courses && p.courses.length > 0 && (
+        <section>
+          <Heading>{"Handson courses"}</Heading>
+          <ul className="flex flex-wrap gap-2">
+            {p.courses.map((c, i) => (
+              <li key={i} className="inline-flex items-center gap-2 rounded-[var(--radius-pill)] bg-lime px-3 py-1.5 text-[15px] font-semibold text-ink">
+                ★ {c.badge_name ?? c.title}
+                <span className="font-normal">· {monthYear(c.completed_at.slice(0, 10), locale)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <footer className="border-t border-line pt-6 text-sm text-ink-muted">
         {t("Shared by the candidate through Handson. Contact details are shared only by the candidate.")}
       </footer>
