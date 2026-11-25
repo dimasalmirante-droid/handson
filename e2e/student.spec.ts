@@ -58,7 +58,7 @@ test.describe("student journey", () => {
       const r = await fetch(url, { redirect: "manual" });
       return { type: r.type, status: r.status };
     }, href!);
-    expect(res.type).toBe("opaqueredirect");
+    expect(res, `GET ${href} should redirect to the signed file URL`).toMatchObject({ type: "opaqueredirect" });
   });
 
   test("refuses a file whose content does not match its type", async ({ page }) => {
