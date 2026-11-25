@@ -1,5 +1,6 @@
 "use server";
 
+import { startDestination } from "@/lib/auth/start";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { googleCallbackUrl } from "@/lib/auth/oauth";
@@ -132,7 +133,9 @@ export async function loginAction(_prev: FormState, formData: FormData): Promise
     return { error: "Please verify your email address first.", values };
   }
 
-  redirect(raw.next ? safeNextPath(raw.next, "/start") : "/start");
+  // Redirect to the destination page itself: a Server Action redirect to the
+  // /start Route Handler would leave the browser on /start.
+  redirect(await startDestination({ next: raw.next ? safeNextPath(raw.next, "") || null : null }));
 }
 
 /* ------------------------------------------------------------------ */
@@ -226,7 +229,7 @@ export async function resetPasswordAction(_prev: FormState, formData: FormData):
     return { error: GENERIC_ERROR };
   }
 
-  redirect("/start?notice=password-updated");
+  redirect(await startDestination({ notice: "password-updated" }));
 }
 
 /* ------------------------------------------------------------------ */
