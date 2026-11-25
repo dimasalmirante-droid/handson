@@ -132,8 +132,9 @@ test.describe("student journey", () => {
     await expect(page.getByRole("heading", { name: "Have an access code?" })).toBeVisible();
     await expectNoHorizontalScroll(page);
 
-    const res = await page.goto("/dashboard/learning/curso-que-nao-existe");
-    expect(res?.status()).toBe(404);
+    // The dashboard streams (loading.tsx), so a missing course shows the not-found page with status 200.
+    await page.goto("/dashboard/learning/curso-que-nao-existe");
+    await expect(page.getByRole("heading", { name: "Page not found" })).toBeVisible();
   });
 
   test("students cannot open the admin portal", async ({ page }) => {

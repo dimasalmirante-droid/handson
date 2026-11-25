@@ -16,7 +16,8 @@ export async function logIn(page: Page, who: { email: string; password: string }
   await page.getByLabel("Email address").fill(who.email);
   await page.getByLabel("Password", { exact: false }).first().fill(who.password);
   await page.getByRole("button", { name: "Log in" }).click();
-  await page.waitForURL((url) => !url.pathname.startsWith("/login"), { timeout: 20_000 });
+  // Sign-in passes through /start, which redirects to the right workspace; wait until it has.
+  await page.waitForURL((url) => !url.pathname.startsWith("/login") && url.pathname !== "/start", { timeout: 30_000 });
   await acceptLegalIfAsked(page);
 }
 
