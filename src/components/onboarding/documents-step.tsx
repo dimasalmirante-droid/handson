@@ -1,5 +1,6 @@
 "use client";
 
+import { mergeFieldErrors } from "@/lib/forms/errors";
 import { useState } from "react";
 import { saveLinks } from "@/app/(app)/onboarding/actions";
 import { SaveIndicator, StepFooter, useAutosave } from "@/components/onboarding/wizard";
@@ -16,7 +17,7 @@ export function DocumentsStep({ initial, documents, embedded = false }: { initia
   const [values, setValues] = useState<Values>(initial);
   const [fields, setFields] = useState<FieldErrors>({});
   const autosave = useAutosave((v: Values) => saveLinks(v, "draft"));
-  const errors: FieldErrors = { ...(autosave.result?.ok === false ? autosave.result.fields : {}), ...fields };
+  const errors: FieldErrors = mergeFieldErrors(autosave.result?.ok === false ? autosave.result.fields : undefined, fields);
 
   const set = (k: string, v: string) => {
     const next = { ...values, [k]: v };
