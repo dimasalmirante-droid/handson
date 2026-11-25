@@ -46,6 +46,8 @@ test.describe("student journey", () => {
     await logIn(page, student);
     await page.goto("/onboarding/documents");
     const cv = page.locator("li", { has: page.getByText("Counts for 10% of your profile").first() }).first();
+    // Pick the file only once the page is interactive, or the change event is lost.
+    await page.waitForLoadState("networkidle");
     await cv.locator('input[type="file"]').setInputFiles(path.join(__dirname, "fixtures", "test-cv.pdf"));
     await expect(page.getByText("test-cv.pdf uploaded.")).toBeVisible({ timeout: 45_000 });
 
@@ -59,6 +61,8 @@ test.describe("student journey", () => {
     await logIn(page, student);
     await page.goto("/onboarding/documents");
     const cv = page.locator("li", { has: page.getByText("Counts for 10% of your profile").first() }).first();
+    // Pick the file only once the page is interactive, or the change event is lost.
+    await page.waitForLoadState("networkidle");
     await cv.locator('input[type="file"]').setInputFiles(path.join(__dirname, "fixtures", "fake.pdf"));
     await expect(page.getByText(/content does not match its type/)).toBeVisible({ timeout: 15_000 });
   });
