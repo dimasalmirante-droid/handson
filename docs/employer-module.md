@@ -1,6 +1,6 @@
 # Module 2 · Employer Management
 
-Design record for the employer module. **Step 1 (foundation), Step 2.1 (the admin employer directory and company registration), first Company Admin invitation, and the internal company profile are implemented.** Team management, the public Employer Page, Page Studio and managed talent campaigns are later steps.
+Design record for the employer module. **Step 1 (foundation), Step 2.1 (the admin employer directory and company registration), Step 2.2 (the internal signed-contract register), first Company Admin invitation, and the internal company profile are implemented.** Team management, the public Employer Page, Page Studio and managed talent campaigns are later steps.
 
 ## Admin employer directory (Step 2.1)
 
@@ -12,7 +12,17 @@ Design record for the employer module. **Step 1 (foundation), Step 2.1 (the admi
 - The registration form suggests a slug from the company name using lower-case ASCII letters/numbers and hyphens, removing accents and normalising spaces and punctuation. The suggestion updates as the company name changes until the administrator customises the slug; after that, changing the company name leaves the custom slug untouched. The database remains the authority for uniqueness and reports when a slug is already in use.
 - The companies table has an optional `contact_email` for the organisation's official correspondence address (for example, a shared HR inbox). It is company data, not a sign-in identity. Individual representatives must use their own Handson accounts and company memberships.
 - The admin registration form captures the optional shared company email and calls the admin-only `admin_create_company_with_contact()` function. The existing `admin_create_company()` function remains available for compatibility.
-- This step does not invite employer contacts or create campaigns. Contract execution remains outside the application for now; a separate contract record and lifecycle will be designed before contract tracking is introduced.
+- This step does not invite employer contacts or create campaigns. Signed contracts are registered through the separate Step 2.2 flow; the physical signed agreement remains the legal source document.
+
+## Internal signed-contract register (Step 2.2)
+
+- The register is available from each employer in the Handson admin area; reviewers and employer members cannot access it.
+- Handson records the reference (optional), signing date, start and end dates, agreed service scope, and an optional internal note.
+- The signed physical agreement remains the legal source. Handson does not negotiate, sign, upload or store the original agreement in this step.
+- Contract status is derived from its dates and any recorded early termination: scheduled, active, expired or terminated early. The employer workspace status remains a separate control.
+- Creation and early termination use the audited `admin_create_company_contract()` and `admin_terminate_company_contract()` database functions. Direct client writes are not granted.
+- Early termination requires a reason and is recorded once. The signed terms and original metadata are otherwise preserved.
+- Registering a contract does not automatically activate the employer workspace.
 
 ## Company workspace profile
 
