@@ -71,6 +71,17 @@ test.describe("admin journey", () => {
     await expect(page.getByRole("heading", { name: "Profile verification" })).toBeVisible();
   });
 
+  test("employer registration exposes an optional official company contact email", async ({ page }) => {
+    await logIn(page, admin);
+    await page.goto("/admin/employers");
+
+    const email = page.getByLabel("Official company contact email");
+    await expect(email).toBeVisible();
+    await expect(email).toHaveAttribute("type", "email");
+    await expect(email).not.toHaveAttribute("required");
+    await expect(page.getByText(/not a sign-in email/i)).toBeVisible();
+  });
+
   test("CSV export downloads for administrators", async ({ page }) => {
     await logIn(page, admin);
     await page.goto("/admin/students");

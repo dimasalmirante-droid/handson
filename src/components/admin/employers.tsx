@@ -74,6 +74,20 @@ export function CreateCompanyForm() {
         </Field>
       </div>
       <Field
+        id="company-contact-email"
+        label="Official company contact email"
+        hint="Optional. Use a shared company inbox (for example, HR). This is company correspondence, not a sign-in email."
+        className="max-w-xl"
+      >
+        <Input
+          id="company-contact-email"
+          name="contactEmail"
+          type="email"
+          autoComplete="email"
+          maxLength={320}
+        />
+      </Field>
+      <Field
         id="company-note"
         label="Internal onboarding note"
         hint="Visible only to Handson administrators. Do not add passwords or sensitive personal data."
