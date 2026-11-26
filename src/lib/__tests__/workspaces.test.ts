@@ -17,7 +17,7 @@ function ctx(over: Partial<Contexts> = {}): Contexts {
 }
 const student = (done = true) => ({ onboarding_completed: done });
 const company = (id: string, over: Partial<Contexts["companies"][number]> = {}) => ({
-  id, name: `Company ${id.slice(0, 1)}`, slug: `co-${id.slice(0, 1)}`, status: "active" as const, role: "editor" as const, ...over,
+  id, name: `Company ${id.slice(0, 1)}`, slug: `co-${id.slice(0, 1)}`, status: "active" as const, role: "reviewer" as const, ...over,
 });
 
 describe("decideDestination", () => {
@@ -77,7 +77,7 @@ describe("listWorkspaces", () => {
       ["admin", "/admin"],
       [`company:${CO1}`, `/employer/${CO1}`],
     ]);
-    expect(ws[2].detail).toBe("Company administrator");
+    expect(ws[2].detail).toBe("Company Administrator");
   });
 
   it("marks suspended companies", () => {

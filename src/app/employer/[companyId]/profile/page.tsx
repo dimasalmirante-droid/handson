@@ -14,7 +14,7 @@ export const metadata: Metadata = { title: "Company profile" };
 
 export default async function CompanyProfilePage({ params }: PageProps<"/employer/[companyId]/profile">) {
   const { companyId } = await params;
-  const { user, company } = await requireCompanyRole(companyId, "viewer");
+  const { user, company } = await requireCompanyRole(companyId, "reviewer");
   const contexts = await getContexts();
   const workspaces = contexts ? listWorkspaces(contexts) : [];
   const supabase = await createClient();
@@ -61,7 +61,7 @@ export default async function CompanyProfilePage({ params }: PageProps<"/employe
               </div>
               <CompanyProfileForm
                 companyId={company.id}
-                editable={companyRoleAtLeast(company.role, "editor")}
+                editable={companyRoleAtLeast(company.role, "company_admin")}
                 profile={{
                   name: profile.name,
                   slug: profile.slug,

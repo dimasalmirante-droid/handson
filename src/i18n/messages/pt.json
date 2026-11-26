@@ -793,5 +793,10 @@
   "You passed this quiz": "Passou neste teste",
   "Practise again": "Praticar outra vez",
   "Practising never lowers your best score.": "Praticar nunca baixa a sua melhor pontuação.",
-  "Your best score: {score}%. The pass mark is {mark}%.": "A sua melhor pontuação: {score}%. A nota mínima é {mark}%."
+  "Your best score: {score}%. The pass mark is {mark}%.": "A sua melhor pontuação: {score}%. A nota mínima é {mark}%.",
+  "By accepting, you join this employer's workspace as a Company Administrator. Access is granted to this Handson account only.": "Ao aceitar, junta-se ao espaço desta entidade empregadora como Administrador da Empresa. O acesso é concedido apenas a esta conta Handson.",
+  "By accepting, you join this employer's workspace as a Reviewer. Access is granted to this Handson account only.": "Ao aceitar, junta-se ao espaço desta entidade empregadora como Revisor. O acesso é concedido apenas a esta conta Handson.",
+  "Company Administrators can manage company details and invite or manage colleagues.": "Os Administradores da Empresa podem gerir os dados da empresa e convidar ou gerir colegas.",
+  "Reviewers can view company workspace information. They cannot edit company details or manage team access.": "Os Revisores podem ver a informação do espaço da empresa. Não podem editar os dados da empresa nem gerir o acesso da equipa.",
+  "Company Administrator": "Administrador da Empresa"
 }
