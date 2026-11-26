@@ -18,6 +18,8 @@ export function Quiz({
   passMark,
   bestScore,
   nextHref,
+  completedHref,
+  passed,
   seed,
 }: {
   lessonId: string;
@@ -26,6 +28,10 @@ export function Quiz({
   passMark: number;
   bestScore: number | null;
   nextHref: string;
+  /** Where to go once the quiz completes the course. */
+  completedHref: string;
+  /** Already passed: show the result first; the quiz opens only for practice. */
+  passed: boolean;
   /** Chosen by the server per page load; each retry shuffles again from it. */
   seed: number;
 }) {
@@ -38,6 +44,7 @@ export function Quiz({
   const [result, setResult] = useState<QuizResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const [practising, setPractising] = useState(false);
   const unanswered = answers.filter((a) => a === null).length;
 
   const submit = () => {
@@ -63,6 +70,21 @@ export function Quiz({
     setAttempt((a) => a + 1);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  if (passed && !practising) {
+    return (
+      <div className="flex flex-col gap-4">
+        <Alert tone="success" title={t("You passed this quiz")}>
+          {t("Your best score: {score}%. The pass mark is {mark}%.", { score: bestScore ?? passMark, mark: passMark })}
+        </Alert>
+        <div className="flex flex-wrap gap-3">
+          <Button onClick={() => router.push(nextHref)}><T>{"Continue"}</T></Button>
+          <Button variant="secondary" onClick={() => setPractising(true)}><T>{"Practise again"}</T></Button>
+        </div>
+        <p className="text-sm text-ink-muted"><T>{"Practising never lowers your best score."}</T></p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -132,7 +154,9 @@ export function Quiz({
           </Alert>
           <div className="flex flex-wrap gap-3">
             {result.passed ? (
-              <Button onClick={() => router.push(nextHref)}><T>{"Continue"}</T></Button>
+              <Button onClick={() => router.push(result.course_completed ? completedHref : nextHref)}>
+                {result.course_completed ? t("See your badge") : t("Continue")}
+              </Button>
             ) : (
               <Button onClick={retry}><T>{"Try again"}</T></Button>
             )}

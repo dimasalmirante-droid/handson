@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/feedback";
 import { T, useT } from "@/i18n/client";
 
-/** Marks a non-quiz lesson as complete, then moves to the next lesson (or back to the course when it is finished). */
-export function CompleteButton({ lessonId, courseSlug, nextHref, courseHref }: { lessonId: string; courseSlug: string; nextHref: string; courseHref: string }) {
+/** Marks a non-quiz lesson as complete, then moves to the next lesson (or to the completion page when the course is finished). */
+export function CompleteButton({ lessonId, courseSlug, nextHref, completedHref }: { lessonId: string; courseSlug: string; nextHref: string; completedHref: string }) {
   const t = useT();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +23,7 @@ export function CompleteButton({ lessonId, courseSlug, nextHref, courseHref }: {
             start(async () => {
               const r = await completeLesson(lessonId, courseSlug);
               if (!r.ok) setError(r.error);
-              else router.push(r.data?.courseCompleted ? `${courseHref}?notice=completed` : nextHref);
+              else router.push(r.data?.courseCompleted ? completedHref : nextHref);
             })
           }
         >

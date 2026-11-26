@@ -20,9 +20,9 @@ export async function generateMetadata({ params }: PageProps<"/dashboard/learnin
   return { title: outline?.title ?? t("Learning") };
 }
 
-export default async function CoursePage({ params, searchParams }: PageProps<"/dashboard/learning/[course]">) {
+export default async function CoursePage({ params }: PageProps<"/dashboard/learning/[course]">) {
   await requireStudent("/dashboard/learning");
-  const [{ course }, sp] = await Promise.all([params, searchParams]);
+  const { course } = await params;
   const outline = await getOutline(course);
   if (!outline) notFound();
   const [t, locale] = await Promise.all([getT(), getLocale()]);
@@ -40,12 +40,6 @@ export default async function CoursePage({ params, searchParams }: PageProps<"/d
         ← <T>{"All courses"}</T>
       </Link>
 
-      {sp.notice === "completed" && outline.completed_at && (
-        <Alert tone="success" title={t("Course completed")}>
-          {t("The badge “{badge}” is now on your profile and CV.", { badge: outline.badge_name ?? outline.title })}
-        </Alert>
-      )}
-
       <header>
         <h1 className="text-[clamp(24px,3vw,32px)] tracking-[-0.03em]">{outline.title}</h1>
         {outline.summary && <p className="mt-2 max-w-2xl text-[15px] text-ink-muted">{outline.summary}</p>}
@@ -62,10 +56,12 @@ export default async function CoursePage({ params, searchParams }: PageProps<"/d
       </header>
 
       {outline.completed_at ? (
-        <Alert tone="success">
+        <Alert tone="success" title={t("Course completed")}>
           {t("Completed on {date}.", {
             date: new Date(outline.completed_at).toLocaleDateString(LOCALE_TAGS[locale], { day: "numeric", month: "long", year: "numeric", timeZone: "Africa/Maputo" }),
-          })}
+          })}{" "}
+          {t("The badge “{badge}” is now on your profile and CV.", { badge: outline.badge_name ?? outline.title })}{" "}
+          <Link href={`${base}/completed`} className="font-semibold underline">{t("See your badge")}</Link>
         </Alert>
       ) : !outline.can_enter ? (
         <Alert tone="info" title={outline.price_mzn > 0 ? t("This course costs {price} MZN", { price: outline.price_mzn.toLocaleString(LOCALE_TAGS[locale]) }) : t("This course is locked")}>
