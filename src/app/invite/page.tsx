@@ -17,15 +17,14 @@ export const metadata: Metadata = {
 
 type InvitationPreview = {
   company_name: string;
-  role: "viewer" | "editor" | "company_admin";
+  role: "reviewer" | "company_admin";
   email_hint: string;
   expires_at: string;
   status: "pending" | "accepted" | "expired" | "revoked";
 };
 
 const roleLabel: Record<InvitationPreview["role"], string> = {
-  viewer: "Viewer",
-  editor: "Editor",
+  reviewer: "Reviewer",
   company_admin: "Company Administrator",
 };
 
@@ -108,7 +107,7 @@ export default async function InvitationPage({
                 <p className="text-sm text-ink-muted">
                   <T>{"Signed in as"}</T>{" "}<strong className="text-ink">{user.email}</strong><T>{". Make sure this is the account for the invited email address."}</T>
                 </p>
-                <AcceptCompanyInvitationForm />
+                <AcceptCompanyInvitationForm role={invitation.role} />
                 <form action={signOutForInvitation}>
                   <Button type="submit" variant="ghost"><T>{"Sign out and use another account"}</T></Button>
                 </form>

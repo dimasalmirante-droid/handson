@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "Employer workspace" };
 
 export default async function EmployerWorkspacePage({ params }: PageProps<"/employer/[companyId]">) {
   const { companyId } = await params;
-  const { user, company } = await requireCompanyRole(companyId, "viewer");
+  const { user, company } = await requireCompanyRole(companyId, "reviewer");
   const contexts = await getContexts();
   const workspaces = contexts ? listWorkspaces(contexts) : [];
 
@@ -35,18 +35,32 @@ export default async function EmployerWorkspacePage({ params }: PageProps<"/empl
                 href={`/employer/${company.id}/profile`}
                 className="inline-flex items-center gap-2 rounded-full bg-indigo px-5 py-3 text-sm font-semibold text-white hover:bg-indigo/90"
               >
-                {companyRoleAtLeast(company.role, "editor") ? "Manage company profile" : "View company profile"}
+                {companyRoleAtLeast(company.role, "company_admin") ? "Manage company profile" : "View company profile"}
                 <span aria-hidden>→</span>
               </Link>
             </Panel>
-            <Panel title="Your company workspace">
+            <Panel title={companyRoleAtLeast(company.role, "company_admin") ? "Team management" : "Workspace access"}>
               <div className="flex items-center gap-2">
                 <Badge tone="indigo">{company.status === "onboarding" ? "Onboarding" : "Active"}</Badge>
                 <span className="text-sm text-ink-muted">Workspace status</span>
               </div>
-              <p className="mt-4 text-sm text-ink-muted">
-                Team management and employer tools will be added here in the next step.
-              </p>
+              {companyRoleAtLeast(company.role, "company_admin") ? (
+                <>
+                  <p className="mt-4 text-sm text-ink-muted">
+                    Invite colleagues, assign workspace access and keep your company team up to date.
+                  </p>
+                  <Link
+                    href={"/employer/" + company.id + "/team"}
+                    className="mt-5 inline-flex items-center gap-2 rounded-full border border-line px-5 py-3 text-sm font-semibold text-indigo hover:bg-indigo-soft"
+                  >
+                    Manage team <span aria-hidden>→</span>
+                  </Link>
+                </>
+              ) : (
+                <p className="mt-4 text-sm text-ink-muted">
+                  You have Reviewer access. You can view this company workspace, but cannot edit company details or manage team access.
+                </p>
+              )}
             </Panel>
           </div>
         )}
