@@ -33,7 +33,9 @@ export default async function LessonPage({ params }: PageProps<"/dashboard/learn
   const t = await getT();
   const base = `/dashboard/learning/${outline.slug}`;
   const next = flat[index + 1];
-  const nextHref = next ? `${base}/${next.id}` : base;
+  const completedHref = `${base}/completed`;
+  // After the last lesson of a completed course, "continue" leads to the completion page.
+  const nextHref = next ? `${base}/${next.id}` : outline.completed_at ? completedHref : base;
   const prev = flat[index - 1];
   const canProgress = outline.can_enter && here.module.open;
   const embed = lesson.lesson_type === "video" ? youtubeEmbedUrl(lesson.video_url) : null;
@@ -94,6 +96,8 @@ export default async function LessonPage({ params }: PageProps<"/dashboard/learn
               passMark={outline.pass_mark}
               bestScore={here.best_score}
               nextHref={nextHref}
+              completedHref={completedHref}
+              passed={here.completed}
               seed={randomInt(1, 2 ** 31 - 1)}
             />
           ) : (
@@ -106,10 +110,10 @@ export default async function LessonPage({ params }: PageProps<"/dashboard/learn
         here.completed ? (
           <div className="flex flex-wrap items-center gap-4">
             <p className="text-[15px] text-success">✓ <T>{"Completed"}</T></p>
-            <ButtonLink href={nextHref} variant="secondary">{next ? t("Next lesson") : t("Back to the course")}</ButtonLink>
+            <ButtonLink href={nextHref} variant="secondary">{next ? t("Next lesson") : outline.completed_at ? t("See your badge") : t("Back to the course")}</ButtonLink>
           </div>
         ) : (
-          <CompleteButton lessonId={lesson.id} courseSlug={outline.slug} nextHref={nextHref} courseHref={base} />
+          <CompleteButton lessonId={lesson.id} courseSlug={outline.slug} nextHref={nextHref} completedHref={completedHref} />
         )
       ) : (
         <Alert tone="info"><T>{"This is a free preview. Get access to the course to continue."}</T></Alert>
