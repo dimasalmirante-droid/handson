@@ -20,7 +20,7 @@ function failure(error: { code?: string; message: string }, fallback: string): A
   return { ok: false, message: fallback };
 }
 
-/** Register an employer workspace. Creation is audited by admin_create_company(). */
+/** Register an employer workspace, including its optional shared contact address. */
 export async function createCompany(_prev: AdminResult | null, formData: FormData): Promise<AdminResult> {
   await requireAdmin("admin");
 
@@ -28,16 +28,18 @@ export async function createCompany(_prev: AdminResult | null, formData: FormDat
     name: String(formData.get("name") ?? ""),
     slug: String(formData.get("slug") ?? ""),
     note: String(formData.get("note") ?? ""),
+    contactEmail: String(formData.get("contactEmail") ?? ""),
   });
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Check the employer details and try again." };
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("admin_create_company", {
+  const { error } = await supabase.rpc("admin_create_company_with_contact", {
     p_name: parsed.data.name,
     p_slug: parsed.data.slug,
     p_note: parsed.data.note,
+    p_contact_email: parsed.data.contactEmail,
   });
   if (error) return failure(error, "The employer could not be registered.");
 

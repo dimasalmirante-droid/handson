@@ -31,6 +31,7 @@ describe("companyRegistrationSchema", () => {
       name: "Example Mozambique, S.A.",
       slug: "example-mozambique",
       note: null,
+      contactEmail: null,
     });
   });
 
@@ -41,6 +42,39 @@ describe("companyRegistrationSchema", () => {
       note: "Contract signed; awaiting contact details.",
     });
     expect(result.note).toBe("Contract signed; awaiting contact details.");
+  });
+
+  it("normalises an optional official company contact email", () => {
+    const result = companyRegistrationSchema.parse({
+      name: "Example Lda",
+      slug: "example",
+      note: "",
+      contactEmail: "  HR@Example.co.mz  ",
+    });
+
+    expect(result.contactEmail).toBe("hr@example.co.mz");
+  });
+
+  it.each(["", "   "])("stores a blank official company email as null: %s", (contactEmail) => {
+    expect(
+      companyRegistrationSchema.parse({ name: "Example Lda", slug: "example", note: "", contactEmail }).contactEmail,
+    ).toBeNull();
+  });
+
+  it.each(["not-an-email", "missing-domain@", "invalid @example.com", "person@example"])(
+    "rejects an invalid official company contact email: %s",
+    (contactEmail) => {
+      expect(
+        companyRegistrationSchema.safeParse({ name: "Example Lda", slug: "example", note: "", contactEmail }).success,
+      ).toBe(false);
+    },
+  );
+
+  it("rejects an official company email above the database length limit", () => {
+    const contactEmail = `${"a".repeat(310)}@example.com`;
+    expect(
+      companyRegistrationSchema.safeParse({ name: "Example Lda", slug: "example", note: "", contactEmail }).success,
+    ).toBe(false);
   });
 
   it.each(["", "a", "two words", "two--hyphens", "-leading", "trailing-", "UPPER CASE"])(
