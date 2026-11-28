@@ -80,13 +80,7 @@ create policy "Company members read campaign applications" on public.campaign_ap
 create policy "Handson admins read applications" on public.campaign_applications
   for select to authenticated using (public.is_admin());
 
-create policy "Candidates read own application events" on public.campaign_application_events
-  for select to authenticated using (
-    public.person_is_active() and exists (
-      select 1 from public.campaign_applications a
-      where a.id = application_id and a.profile_id = (select auth.uid())
-    )
-  );
+-- Application events are internal review history for now; candidate-facing status is read from the application row.
 create policy "Company members read campaign application events" on public.campaign_application_events
   for select to authenticated using (
     public.person_is_active() and exists (
